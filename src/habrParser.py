@@ -21,8 +21,8 @@ def _raw_views_count(xmlTree):
 # 10 -> 10
 # 3,2k -> 3200
 def _normalize_views_count(views_string):
-    r = re.search(r'([0-9]+\,[0-9])(k|m)',views_string)
-    num_part = float(r.group(1).replace(',','.'))
+    r = re.search(r'([0-9]+\,[0-9]|[0-9]+)(k|m)?',views_string)
+    num_part = float(r.group(1).replace(',','.') if ',' in r.group(1) else r.group(1))
     if r.group(2) == 'k':
         mult_part = 1000
     else:

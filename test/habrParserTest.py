@@ -3,6 +3,7 @@
 
 import unittest
 import sys
+import colour_runner.runner as crr
 sys.path.append('../src')
 
 import habrParser as hp
@@ -28,4 +29,4 @@ class TestViewsNormalize(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2) 
+    unittest.main(testRunner=crr.ColourTextTestRunner, verbosity=2) 

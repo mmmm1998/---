@@ -14,6 +14,9 @@ from string import punctuation
 from urllib.request import urlopen
 
 
+def _raw_views_count(xmlTree):
+    return xmlTree.find('//span[@class="post-stats__views-count"]').text    
+
 # 3k -> 3000
 # 10 -> 10
 # 3,2k -> 3200
@@ -71,8 +74,7 @@ def parseHabr(link):
             post['comments'] = None
 
         try:
-            views_str = data.find('//span[@class="post-stats__views-count"]').text
-            post['views'] = _normalize_views_count(views_str)
+            post['views'] = _normalize_views_count(_raw_views_count(data))
         except:
             post['views'] = None
 

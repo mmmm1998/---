@@ -3,16 +3,9 @@
 
 import os
 import re
-import sqlite3 as lite
 from lxml.html import parse
 from lxml.builder import E
-from lxml import etree
-from urllib.request import urlretrieve
-from shutil import rmtree, copy2
-from subprocess import call
-from string import punctuation
 from urllib.request import urlopen
-
 
 def _raw_views_count(xmlTree):
     return xmlTree.find('//span[@class="post-stats__views-count"]').text    
@@ -78,7 +71,6 @@ def parseHabr(link):
         except:
             post['views'] = None
 
-        # TODO: сделать 'bookmarks'
         try:
             post['bookmarks'] = int(data.find('//span[@class="bookmark__counter js-favs_count"]').text)
         except:

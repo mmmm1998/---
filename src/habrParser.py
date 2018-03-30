@@ -9,15 +9,14 @@ from urllib.request import urlopen
 
 def _normalize_views_count(views_string):
     """
-    Преобразует строку просмотров с хабра в нормальное число.
-    Например: '3k' -> 3000, '10' -> 10, '3,2k' -> 3200
-        :param views_string: строка просмотров в формате хабра
-        :return: число просмотров
+    Transform views string from habrahabr to number
+    Example: '3k' -> 3000, '10' -> 10, '3,2k' -> 3200
+        :param views_string: views string from habrahabr
+        :return: views count number
         :rtype: int
     """
     r = re.search(r'([0-9]+\,[0-9]|[0-9]+)(k|m)?',views_string)
-    # Если в числовой части строки десятичная дробь, то меняем запятую на точку, чтобы 
-    # правильно преобразовать в float
+    # if number part of string is float, replace ',' to '.' (different float notation)
     num_part = float(r.group(1).replace(',','.') if ',' in r.group(1) else r.group(1))
     if r.group(2) == 'k':
         mult_part = 1000
@@ -31,12 +30,12 @@ def _normalize_views_count(views_string):
 
 def _body2text(body):
     """
-    Преобразовывает html дерево тела статьи с хабра в plain текст
-        :param body: Html дерево всей статьи с хабра
-        :return: Плоский текст тела статьи
+    Transform html tree of article body to plain text (ignore code)
+        :param body: html tree of article body
+        :return: plaint text of article body
         :rtype: string
     """
-    # TODO: можно ли это ускорить?
+    # TODO: improve this?
     tmp = body
     for elem in tmp.findall('.//code'):
         elem.getparent().remove(elem)
@@ -53,11 +52,11 @@ _find_tags = {
 }
 def parseHabr(link):
     """
-    Парсит указанную ссылку хабра и возвращает словарь данных, содержащий
-    заголовок (title), тело статьи (body), автора (author), рейтинг (rating), кол-во комментариев (comments),
-    кол-во просмотров (views) и кол-во людей, поместивших эту статью в закладки (bookmarks).
-        :param link: строка, содержащая ссылку на статью на хабре.
-        :return: словарь данных
+    Parse habrahabr link and return data dictionary, with article title (title), article body (body),
+    article rating (rating), article comments count (comments), article views count (views) and count of people,
+    which bookmark this article (bookmarks).
+        :param link: habrahabr link
+        :return: data dictionary
     """
     post = {
         'title': None,
@@ -95,7 +94,8 @@ def parseHabr(link):
         post['rating']=None
 
     try:
-        # TODO: А если комментариев > 1000, то будет число, или же 1k?
+        # TODO: If comments count > 1000, found string will be '1k'? 
+        # Maybe use `_normalize_views_count`?
         post['comments'] = int(data.find(_find_tags['comments count']).text)
     except Exception as e:
         print("parseHabr error: "+e) 

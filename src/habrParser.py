@@ -36,8 +36,11 @@ def _body2text(body):
         :return: Плоский текст тела статьи
         :rtype: string
     """
-    # TODO: Сделать преобразование тела поста в plain text
-    return 'Not implemented, TODO body2text'
+    # TODO: можно ли это ускорить?
+    tmp = body
+    for elem in tmp.findall('.//code'):
+        elem.getparent().remove(elem)
+    return tmp.text_content()
 
 _find_tags = {
     'title': '//h1[@class="post__title post__title_full"]/span[@class="post__title-text"]',

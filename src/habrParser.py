@@ -7,11 +7,17 @@ from lxml.html import parse
 from lxml.builder import E
 from urllib.request import urlopen 
 
-# 3k -> 3000
-# 10 -> 10
-# 3,2k -> 3200
 def _normalize_views_count(views_string):
+    """
+    Преобразует строку просмотров с хабра в нормальное число.
+    Например: '3k' -> 3000, '10' -> 10, '3,2k' -> 3200
+        :param views_string: строка просмотров в формате хабра
+        :return: число просмотров
+        :rtype: int
+    """
     r = re.search(r'([0-9]+\,[0-9]|[0-9]+)(k|m)?',views_string)
+    # Если в числовой части строки десятичная дробь, то меняем запятую на точку, чтобы 
+    # правильно преобразовать в float
     num_part = float(r.group(1).replace(',','.') if ',' in r.group(1) else r.group(1))
     if r.group(2) == 'k':
         mult_part = 1000
@@ -24,6 +30,12 @@ def _normalize_views_count(views_string):
         return -1
 
 def _body2text(body):
+    """
+    Преобразовывает html дерево тела статьи с хабра в plain текст
+        :param body: Html дерево всей статьи с хабра
+        :return: Плоский текст тела статьи
+        :rtype: string
+    """
     # TODO: Сделать преобразование тела поста в plain text
     return 'Not implemented, TODO body2text'
 
@@ -37,6 +49,13 @@ _find_tags = {
     'bookmarks count': '//span[@class="bookmark__counter js-favs_count"]'
 }
 def parseHabr(link):
+    """
+    Парсит указанную ссылку хабра и возвращает словарь данных, содержащий
+    заголовок (title), тело статьи (body), автора (author), рейтинг (rating), кол-во комментариев (comments),
+    кол-во просмотров (views) и кол-во людей, поместивших эту статью в закладки (bookmarks).
+        :param link: строка, содержащая ссылку на статью на хабре.
+        :return: словарь данных
+    """
     try:
         post = {
             'title': None,
@@ -53,7 +72,7 @@ def parseHabr(link):
         post['title'] = data.find(_find_tags['title']).text
         try:
             post['author'] = data.find(_find_tags['author']).text
-        except: # TODO: test this error
+        except: 
             post['author'] = None
 
         try:

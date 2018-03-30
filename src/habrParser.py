@@ -79,6 +79,10 @@ def parseHabr(link):
             post['views'] = None
 
         # TODO: сделать 'bookmarks'
+        try:
+            post['bookmarks'] = int(data.find('//span[@class="bookmark__counter js-favs_count"]').text)
+        except:
+            post['bookmarks'] = None
 
         return post
     except IOError as e:

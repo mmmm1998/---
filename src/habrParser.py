@@ -59,52 +59,59 @@ def parseHabr(link):
         :param link: строка, содержащая ссылку на статью на хабре.
         :return: словарь данных
     """
+    post = {
+        'title': None,
+        'body': None, 
+        'author': None, 
+        'rating': None, 
+        'comments': None,
+        'views': None,
+        'bookmarks': None
+        }
+
     try:
-        post = {
-            'title': None,
-            'body': None, 
-            'author': None, 
-            'rating': None, 
-            'comments': None,
-            'views': None,
-            'bookmarks': None
-            }
-
         data = parse(urlopen(link))
-
-        post['title'] = data.find(_find_tags['title']).text
-        try:
-            post['author'] = data.find(_find_tags['author']).text
-        except: 
-            post['author'] = None
-
-        try:
-            post['body'] = _body2text(data.find(_find_tags['body']))
-        except:
-            post['body'] = None
-
-        try:
-            post['rating'] = int(data.find(_find_tags['rating']).text)
-        except: 
-            post['rating']=None
-
-        try:
-            # TODO: А если комментариев > 1000, то будет число, или же 1k?
-            post['comments'] = int(data.find(_find_tags['comments count']).text)
-        except: 
-            post['comments'] = None
-
-        try:
-            raw_views = data.find(_find_tags['views count']).text
-            post['views'] = _normalize_views_count(raw_views)
-        except:
-            post['views'] = None
-
-        try:
-            post['bookmarks'] = int(data.find(_find_tags['bookmarks count']).text)
-        except:
-            post['bookmarks'] = None
-
-        return post
     except IOError as e:
-        print(e)
+        print("parseHabr link error: "+e)
+        return None
+
+    post['title'] = data.find(_find_tags['title']).text
+    try:
+        post['author'] = data.find(_find_tags['author']).text
+    except Exception as e:
+        print("parseHabr error: "+e)
+        post['author'] = None
+
+    try:
+        post['body'] = _body2text(data.find(_find_tags['body']))
+    except Exception as e:
+        print("parseHabr error: "+e)
+        post['body'] = None
+
+    try:
+        post['rating'] = int(data.find(_find_tags['rating']).text)
+    except Exception as e:
+        print("parseHabr error: "+e)
+        post['rating']=None
+
+    try:
+        # TODO: А если комментариев > 1000, то будет число, или же 1k?
+        post['comments'] = int(data.find(_find_tags['comments count']).text)
+    except Exception as e:
+        print("parseHabr error: "+e) 
+        post['comments'] = None
+
+    try:
+        raw_views = data.find(_find_tags['views count']).text
+        post['views'] = _normalize_views_count(raw_views)
+    except Exception as e:
+        print("parseHabr error: "+e)
+        post['views'] = None
+
+    try:
+        post['bookmarks'] = int(data.find(_find_tags['bookmarks count']).text)
+    except Exception as e:
+        print("parseHabr error: "+e)
+        post['bookmarks'] = None
+
+    return post

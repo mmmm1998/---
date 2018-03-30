@@ -63,7 +63,7 @@ def parseHabr(link):
             post['body'] = None
 
         try:
-            post['rating'] = data.find('//div[@class="voting   "]/div/span[@class="score"]').text
+            post['rating'] = int(data.find('//span[@class="voting-wjt__counter voting-wjt__counter_positive  js-score"]').text)
         except: 
             post['rating']=None
 

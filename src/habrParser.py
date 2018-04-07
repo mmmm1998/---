@@ -3,9 +3,12 @@
 
 import os
 import re
-from lxml.html import parse
+import asyncio
+import aiohttp
+from lxml.html import parse, document_fromstring
 from lxml.builder import E
 from urllib.request import urlopen 
+
 
 def _normalize_views_count(views_string):
     """
@@ -50,11 +53,12 @@ _find_tags = {
     'views count': '//span[@class="post-stats__views-count"]',
     'bookmarks count': '//span[@class="bookmark__counter js-favs_count"]'
 }
-def parseHabr(link):
+async def parseHabr(link):
     """
     Parse habrahabr link and return data dictionary, with article title (title), article body (body),
     article rating (rating), article comments count (comments), article views count (views) and count of people,
     which bookmark this article (bookmarks).
+    Async function.
         :param link: habrahabr link
         :return: data dictionary
     """
@@ -69,7 +73,8 @@ def parseHabr(link):
         }
 
     try:
-        data = parse(urlopen(link))
+        page = await aiohttp.request('get', link)
+        data = parse(page)
     except IOError as e:
         print("parseHabr link error: "+e)
         return None
@@ -115,3 +120,53 @@ def parseHabr(link):
         post['bookmarks'] = None
 
     return post
+
+def _is_page_contains_article(pageHtml):
+    found = pageHtml.find('empty-placeholder__message')
+    return found == -1
+
+def _pagebody2articles(tree):
+    hrefs = tree.findall('.//a[@class="post__title_link"]')
+    return list(map(lambda href: href.attrib['href'], hrefs))
+
+async def get_articles_from_page(page_url):
+    with aiohttp.ClientSession() as session:
+        try:
+            pageResponse = await session.get(page_url, timeout=120)
+            while pageResponse.status == 503:
+                print("code 503 for {}, wait".format(page_url))
+                await asyncio.sleep(5)
+        except Exception as e:
+            print("parseHabr link error: "+e.args[0])
+            return None
+        pageHtml = await pageResponse.text()
+        if _is_page_contains_article(pageHtml):
+            data = document_fromstring(pageHtml)
+            page_articles = _pagebody2articles(data)    
+            return page_url, page_articles
+        else:
+            return page_url, []
+
+def get_all_hub_article_urls(hub):
+    threads_count = 24 # Habr accept 24 and less connections?
+    baseurl = 'https://habrahabr.ru/hub/'+hub+'/all/'
+    page_number = 1
+    articles = []
+    is_pages_end = False
+    ioloop = asyncio.get_event_loop()
+    while not is_pages_end:
+        tasks = []
+        for i in range(page_number,page_number+threads_count):
+            page_url = baseurl+'page'+str(i)
+            #print(page_url)
+            tasks.append(asyncio.ensure_future(get_articles_from_page(page_url)))
+        page_number += threads_count
+        results = ioloop.run_until_complete(asyncio.gather(*tasks))
+        for url, result in results:
+            if len(result) == 0 and not is_pages_end:
+                #print("Last page: "+url)
+                is_pages_end = True
+            articles += result
+    ioloop.close()
+    print("Кол-во полученных адресов статей: ", len(articles))
+    return articles

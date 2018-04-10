@@ -23,6 +23,8 @@ def _normalize_views_count(views_string):
     num_part = float(r.group(1).replace(',','.') if ',' in r.group(1) else r.group(1))
     if r.group(2) == 'k':
         mult_part = 1000
+    elif r.group(2) == 'm':
+        mult_part = 1000000
     else:
         mult_part = 1
 
@@ -38,11 +40,9 @@ def _body2text(body):
         :return: plaint text of article body
         :rtype: string
     """
-    # TODO: improve this?
-    tmp = body
-    for elem in tmp.findall('.//code'):
+    for elem in body.findall('.//code'):
         elem.getparent().remove(elem)
-    return tmp.text_content()
+    return body.text_content()
 
 _find_tags = {
     'title': '//h1[@class="post__title post__title_full"]/span[@class="post__title-text"]',
@@ -167,6 +167,6 @@ def get_all_hub_article_urls(hub):
                 #print("Last page: "+url)
                 is_pages_end = True
             articles += result
-    ioloop.close()
+    #ioloop.close()
     print("Кол-во полученных адресов статей: ", len(articles))
     return articles

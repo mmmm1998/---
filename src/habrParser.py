@@ -158,15 +158,12 @@ def get_all_hub_article_urls(hub):
         tasks = []
         for i in range(page_number,page_number+threads_count):
             page_url = baseurl+'page'+str(i)
-            #print(page_url)
             tasks.append(asyncio.ensure_future(get_articles_from_page(page_url)))
         page_number += threads_count
         results = ioloop.run_until_complete(asyncio.gather(*tasks))
         for url, result in results:
             if len(result) == 0 and not is_pages_end:
-                #print("Last page: "+url)
                 is_pages_end = True
             articles += result
-    #ioloop.close()
     print("Кол-во полученных адресов статей: ", len(articles))
     return articles

@@ -122,19 +122,35 @@ async def parseHabr(link):
     return post
 
 def _is_page_contains_article(pageHtml):
+    """
+    Check, if hub page contains articles.
+        :param: html text of page
+        :return: True or False
+    """
     found = pageHtml.find('empty-placeholder__message')
     return found == -1
 
 def _pagebody2articles(tree):
+    """
+    Parse DOM tree of hub page and return list of all
+    hrefs to articles on this page.
+    """
     hrefs = tree.findall('.//a[@class="post__title_link"]')
     return list(map(lambda href: href.attrib['href'], hrefs))
 
 async def get_articles_from_page(page_url):
+    """
+    For the specified page url returns list of all hrefs to articles,
+    contained in this page.
+    Async function.
+        :param: url of the page
+        :return: list of article urls
+    """
     with aiohttp.ClientSession() as session:
         try:
             pageResponse = await session.get(page_url, timeout=120)
             while pageResponse.status == 503:
-                print("code 503 for {}, wait".format(page_url))
+                print("code 503 for {}, wait 5 seconds".format(page_url))
                 await asyncio.sleep(5)
         except Exception as e:
             print("parseHabr link error: "+e.args[0])
@@ -148,6 +164,11 @@ async def get_articles_from_page(page_url):
             return page_url, []
 
 def get_all_hub_article_urls(hub):
+    """
+    For the specified hub returns list of all articles belong to this hub.
+        :param: name of the hub
+        :return: list of all hrefs of hub articles
+    """
     threads_count = 24 # Habr accept 24 and less connections?
     baseurl = 'https://habrahabr.ru/hub/'+hub+'/all/'
     page_number = 1

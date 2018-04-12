@@ -1,1 +1,1 @@
-Проект по анализу хабрахабра и получения модели, по которой можно предсказывать рейтинг статьи.
+The project analysis of habrahabr site and the makeing a model, which can predicate rating of the article.

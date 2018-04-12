@@ -14,10 +14,11 @@ from collections import Counter
 
 def _normalize_views_count(views_string):
     """
-    Transform views string from habrahabr to number
+    Transform views count (given as a string) from
+    habrahabr's format to an integer
     Example: '3k' -> 3000, '10' -> 10, '3,2k' -> 3200
-        :param views_string: views string from habrahabr
-        :return: views count number
+        :param views_string: view count in habr's format
+        :return: views count
         :rtype: int
     """
     r = re.search(r'([0-9]+\,[0-9]|[0-9]+)(k|m)?',views_string)
@@ -37,11 +38,12 @@ def _normalize_views_count(views_string):
 
 def _body2text(body):
     """
-    Transform html tree of article body to plain text (ignore code)
+    Transform html tree of article body to plain text (ignoring code)
         :param body: html tree of article body
-        :return: plaint text of article body
+        :return: plain text of article
         :rtype: string
     """
+    # TODO: omit images too
     for elem in body.findall('.//code'):
         elem.getparent().remove(elem)
     return body.text_content()
@@ -55,14 +57,16 @@ _find_tags = {
     'views count': './/span[@class="post-stats__views-count"]',
     'bookmarks count': './/span[@class="bookmark__counter js-favs_count"]'
 }
+# Sven: maybe rename this to `parseArticle'?
 async def parseHabr(link):
     """
-    Parse habrahabr link and return data dictionary, with article title (title), article body (body),
-    article rating (rating), article comments count (comments), article views count (views) and count of people,
-    which bookmark this article (bookmarks).
+    Parse article and return dictionary with info about it:
+    its title, body, rating, comments count, views count and bookmarked count.
+    Therefore, the returned dict will have the following keys:
+    title, body, rating, comments, views, bookmarks.
     Async function.
-        :param link: habrahabr link
-        :return: data dictionary
+        :param link: url to article
+        :return: dict described above
     """
     post = {
         'title': None,
@@ -126,7 +130,7 @@ async def parseHabr(link):
 
 def _is_page_contains_article(pageHtml):
     """
-    Check, if hub page contains articles.
+    Check if hub page contains articles.
         :param: html text of page
         :return: True or False
     """
@@ -143,11 +147,10 @@ def _pagebody2articles(tree):
 
 async def get_articles_from_page(page_url):
     """
-    For the specified page url returns list of all hrefs to articles,
-    contained in this page.
+    For the specified hub page return all articles contained in this page.
     Async function.
         :param: url of the page
-        :return: list of article urls
+        :return: list of hrefs to articles
     """
     async with aiohttp.ClientSession() as session:
         try:
@@ -168,9 +171,9 @@ async def get_articles_from_page(page_url):
 
 def get_all_hub_article_urls(hub):
     """
-    For the specified hub returns list of all articles belong to this hub.
+    For the specified hub return all articles belonging to this hub.
         :param: name of the hub
-        :return: list of all hrefs of hub articles
+        :return: list of hrefs to articles
     """
     threads_count = 24 # Habr accept 24 and less connections?
     baseurl = 'https://habrahabr.ru/hub/'+hub+'/all/'
@@ -195,7 +198,7 @@ def get_all_hub_article_urls(hub):
 def init_parsed_habr_data_db(path_to_base):
     """
     Create database for parsed data from habrahabr
-        :param: path to the created database
+        :param: path where to create database
         :return: None
     """
     try:
@@ -223,8 +226,8 @@ def init_parsed_habr_data_db(path_to_base):
 def _make_words_space(data):
     """
     Create words space from array of parsed article data
-        :param: list of parsed article data
-        :return: list of all words in all articles
+        :param: list of article texts
+        :return: list of all words found in articles
     """
     wordsList = {}
     for post in data:
@@ -236,7 +239,7 @@ def _make_words_space(data):
             if word in wordsList:
                 wordsList[word] += counter[word]
             else:
-                wordsList[word] = 1
-    # Clear words, which contains only one page
+                wordsList[word] = 1 # Sven: shouldn't this be `counter[word]' instead of `1'?
+    # Remove words found only once
     wordsList = dict(filter(lambda x: x[1] > 1, wordsList.items()))
     return wordsList

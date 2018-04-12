@@ -9,6 +9,7 @@ import sqlite3
 from lxml.html import parse, document_fromstring
 from lxml.builder import E
 from urllib.request import urlopen 
+from collections import Counter
 
 
 def _normalize_views_count(views_string):
@@ -46,13 +47,13 @@ def _body2text(body):
     return body.text_content()
 
 _find_tags = {
-    'title': '//h1[@class="post__title post__title_full"]/span[@class="post__title-text"]',
-    'author': '//span[@class="user-info__nickname user-info__nickname_small"]',
-    'body': '//div[@class="post__text post__text-html js-mediator-article"]',
-    'rating': '//span[@class="voting-wjt__counter voting-wjt__counter_positive  js-score"]',
-    'comments count': '//strong[@class="comments-section__head-counter"]',
-    'views count': '//span[@class="post-stats__views-count"]',
-    'bookmarks count': '//span[@class="bookmark__counter js-favs_count"]'
+    'title': './/h1[@class="post__title post__title_full"]/span[@class="post__title-text"]',
+    'author': './/span[@class="user-info__nickname user-info__nickname_small"]',
+    'body': './/div[@class="post__text post__text-html js-mediator-article"]',
+    'rating': './/span[@class="voting-wjt__counter voting-wjt__counter_positive  js-score"]',
+    'comments count': './/strong[@class="comments-section__head-counter"]',
+    'views count': './/span[@class="post-stats__views-count"]',
+    'bookmarks count': './/span[@class="bookmark__counter js-favs_count"]'
 }
 async def parseHabr(link):
     """
@@ -74,8 +75,9 @@ async def parseHabr(link):
         }
 
     try:
-        page = await aiohttp.request('get', link)
-        data = parse(page)
+        async with aiohttp.request('get', link) as page:
+            pageHtml = await page.text()
+            data = document_fromstring(pageHtml)
     except IOError as e:
         print("parseHabr link error: "+e)
         return None
@@ -147,7 +149,7 @@ async def get_articles_from_page(page_url):
         :param: url of the page
         :return: list of article urls
     """
-    with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession() as session:
         try:
             pageResponse = await session.get(page_url, timeout=120)
             while pageResponse.status == 503:

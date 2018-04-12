@@ -198,6 +198,21 @@ def init_parsed_habr_data_db(path_to_base):
     """
     try:
         db = sqlite3.connect(path_to_base)
+        cursor = db.cursor()
+        cursor.execute(
+            """
+            CREATE TABLE DATA (
+                Code INTEGER NOT NULL,
+                Hub TEXT NOT NULL,
+                Body TEXT NOT NULL,
+                Author TEXT NOT NULL,
+                Rating INTEGER NOT NULL,
+                Comments INTEGER NOT NULL,
+                Views INTEGER NOT NULL,
+                Bookmarks INTEGER NOT NULL
+            )
+            """)
+        db.commit()
     except Exception as e:
         print("habrParser db error: "+e.args[0])
     finally:

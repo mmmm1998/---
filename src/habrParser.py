@@ -5,6 +5,7 @@ import os
 import re
 import asyncio
 import aiohttp
+import sqlite3
 from lxml.html import parse, document_fromstring
 from lxml.builder import E
 from urllib.request import urlopen 
@@ -188,3 +189,16 @@ def get_all_hub_article_urls(hub):
             articles += result
     print("Кол-во полученных адресов статей: ", len(articles))
     return articles
+
+def init_parsed_habr_data_db(path_to_base):
+    """
+    Create database for parsed data from habrahabr
+        :param: path to the created database
+        :return: None
+    """
+    try:
+        db = sqlite3.connect(path_to_base)
+    except Exception as e:
+        print("habrParser db error: "+e.args[0])
+    finally:
+        db.close()

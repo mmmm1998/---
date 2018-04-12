@@ -141,6 +141,8 @@ def _pagebody2articles(tree):
     """
     Parse DOM tree of hub page and return list of all
     hrefs to articles on this page.
+        :param tree: DOM tree of page
+        :return: all links to articles from this page
     """
     hrefs = tree.findall('.//a[@class="post__title_link"]')
     return list(map(lambda href: href.attrib['href'], hrefs))
@@ -149,7 +151,7 @@ async def get_articles_from_page(page_url):
     """
     For the specified hub page return all articles contained in this page.
     Async function.
-        :param: url of the page
+        :param page_url: url of the page
         :return: list of hrefs to articles
     """
     async with aiohttp.ClientSession() as session:
@@ -172,7 +174,7 @@ async def get_articles_from_page(page_url):
 def get_all_hub_article_urls(hub):
     """
     For the specified hub return all articles belonging to this hub.
-        :param: name of the hub
+        :param hub: name of the hub
         :return: list of hrefs to articles
     """
     threads_count = 24 # Habr accept 24 and less connections?
@@ -192,13 +194,12 @@ def get_all_hub_article_urls(hub):
             if len(result) == 0 and not is_pages_end:
                 is_pages_end = True
             articles += result
-    print("Кол-во полученных адресов статей: ", len(articles))
     return articles
 
 def init_parsed_habr_data_db(path_to_base):
     """
     Create database for parsed data from habrahabr
-        :param: path where to create database
+        :param path_to_base: path where to create database
         :return: None
     """
     try:
@@ -226,7 +227,7 @@ def init_parsed_habr_data_db(path_to_base):
 def _make_words_space(data):
     """
     Create words space from array of parsed article data
-        :param: list of article texts
+        :param data: list of article texts
         :return: list of all words found in articles
     """
     wordsList = {}

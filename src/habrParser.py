@@ -239,7 +239,7 @@ def _make_words_space(data):
             if word in wordsList:
                 wordsList[word] += counter[word]
             else:
-                wordsList[word] = 1 # Sven: shouldn't this be `counter[word]' instead of `1'?
+                wordsList[word] = counter[word]
     # Remove words found only once
     wordsList = dict(filter(lambda x: x[1] > 1, wordsList.items()))
     return wordsList

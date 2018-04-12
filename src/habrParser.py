@@ -219,3 +219,24 @@ def init_parsed_habr_data_db(path_to_base):
         print("habrParser db error: "+e.args[0])
     finally:
         db.close()
+
+def _make_words_space(data):
+    """
+    Create words space from array of parsed article data
+        :param: list of parsed article data
+        :return: list of all words in all articles
+    """
+    wordsList = {}
+    for post in data:
+        words = re.split('[^a-z|а-я|A-Z|А-Я]', post['body'])
+        words = map(str.lower,words)
+        words = list(filter(lambda x: x != '',words))
+        counter = Counter(words)
+        for word in counter:
+            if word in wordsList:
+                wordsList[word] += counter[word]
+            else:
+                wordsList[word] = 1
+    # Clear words, which contains only one page
+    wordsList = dict(filter(lambda x: x[1] > 1, wordsList.items()))
+    return wordsList

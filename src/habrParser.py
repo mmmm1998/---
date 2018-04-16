@@ -38,7 +38,7 @@ def _normalize_views_count(views_string):
 
 def _body2text(body):
     """
-    Transform html tree of article body to plain text (ignoring code)
+    Transform html tree of article body to plain normalize text (ignoring code)
         :param body: html tree of article body
         :return: plain text of article
         :rtype: string
@@ -46,7 +46,7 @@ def _body2text(body):
     # TODO: omit images too
     for elem in body.findall('.//code'):
         elem.getparent().remove(elem)
-    return body.text_content()
+    return body.text_content().lower()
 
 _find_tags = {
     'title': './/h1[@class="post__title post__title_full"]/span[@class="post__title-text"]',

@@ -208,14 +208,13 @@ def init_parsed_habr_data_db(path_to_base):
         cursor.execute(
             """
             CREATE TABLE DATA (
-                Code INTEGER NOT NULL,
-                Hub TEXT NOT NULL,
-                Body TEXT NOT NULL,
-                Author TEXT NOT NULL,
-                Rating INTEGER NOT NULL,
-                Comments INTEGER NOT NULL,
-                Views INTEGER NOT NULL,
-                Bookmarks INTEGER NOT NULL
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                body TEXT NOT NULL,
+                author TEXT NOT NULL,
+                rating INTEGER NOT NULL,
+                comments INTEGER NOT NULL,
+                views INTEGER NOT NULL,
+                bookmarks INTEGER NOT NULL
             )
             """)
         db.commit()
@@ -257,3 +256,27 @@ def _vectorize_data_post_text(data, words_space):
     for word in data['body'].split():
         vector[words_space.index(word)] = 1
     data['body'] = vector
+
+def append_parsed_habr_data_to_db(data, path_to_base):
+    try:
+        db = sqlite3.connect(path_to_base)
+        cursor = db.cursor()
+        body = data['body']
+        author = data['author']
+        rating = data['rating']
+        comments = data['comments']
+        views = data['views']
+        bookmarks = data['bookmarks']
+        cursor.execute(
+            r"""
+            INSERT INTO DATA
+                (body, author, rating, comments, views, bookmarks)
+            VALUES
+                ('{body}', '{author}', {rating}, {comments}, {views}, {bookmarks});
+            """)
+        db.commit()
+    except Exception as e:
+        print("habrParser db error: "+e.args[0])
+    finally:
+        db.close()
+

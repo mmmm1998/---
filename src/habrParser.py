@@ -128,13 +128,13 @@ async def parseHabr(link):
 
     return post
 
-def _is_page_contains_article(pageHtml):
+def _is_page_contains_article(page_html):
     """
     Check if hub page contains articles.
         :param: html text of page
         :return: True or False
     """
-    found = pageHtml.find('empty-placeholder__message')
+    found = page_html.find('empty-placeholder__message')
     return found == -1
 
 def _pagebody2articles(tree):
@@ -156,16 +156,16 @@ async def get_articles_from_page(page_url):
     """
     async with aiohttp.ClientSession() as session:
         try:
-            pageResponse = await session.get(page_url, timeout=120)
-            while pageResponse.status == 503:
+            page_response = await session.get(page_url, timeout=120)
+            while page_response.status == 503:
                 print("code 503 for {}, wait 5 seconds".format(page_url))
                 await asyncio.sleep(5)
         except Exception as e:
             print("parseHabr link error: "+e.args[0])
             return None
-        pageHtml = await pageResponse.text()
-        if _is_page_contains_article(pageHtml):
-            data = document_fromstring(pageHtml)
+        page_html = await page_response.text()
+        if _is_page_contains_article(page_html):
+            data = document_fromstring(page_html)
             page_articles = _pagebody2articles(data)    
             return page_url, page_articles
         else:

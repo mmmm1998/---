@@ -26,7 +26,16 @@ class TestViewsNormalize(unittest.TestCase):
         e = 20000
         self.assertEqual(hp._normalize_views_count(s),e)
 
+class Test_vectorize_data_post_text(unittest.TestCase):
+    def test1(self):
+        space = ['except', 'one', 'of', 'this', 'movie', 'man', 'have',
+            'cat', 'five', 'magic', 'far', 'logic', 'perfect']
 
+        s = {'body': "one of this man have five cat"}
+        e = {'body': [0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0]}
+
+        hp._vectorize_data_post_text(s, space)
+        self.assertEqual(s,e)
 
 if __name__ == '__main__':
     unittest.main(testRunner=crr.ColourTextTestRunner, verbosity=2) 

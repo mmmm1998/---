@@ -244,3 +244,16 @@ def _make_words_space(data):
     # Remove words found only in one post
     wordsList = dict(filter(lambda x: x[1] > 1, wordsList.items()))
     return wordsList
+
+def _vectorize_data_post_text(data, words_space):
+    """
+    Replace data post text by vector of words space.
+    Vector consists of zeros and ones, where one mean, that
+    words in words space with this index contains in post text
+        :param data: parsed post data
+        :param words_space: result of _make_words_space function
+    """
+    vector = [0] * len(words_space)
+    for word in data['body'].split():
+        vector[words_space.index(word)] = 1
+    data['body'] = vector

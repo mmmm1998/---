@@ -238,9 +238,9 @@ def _make_words_space(data):
         counter = Counter(words)
         for word in counter:
             if word in wordsList:
-                wordsList[word] += counter[word]
+                wordsList[word] += 1
             else:
-                wordsList[word] = counter[word]
-    # Remove words found only once
+                wordsList[word] = 1
+    # Remove words found only in one post
     wordsList = dict(filter(lambda x: x[1] > 1, wordsList.items()))
     return wordsList

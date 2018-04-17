@@ -217,14 +217,14 @@ def get_all_hub_article_urls(hub):
             articles += result
     return articles
 
-def init_parsed_habr_data_db(path_to_base):
+def init_parsed_habr_data_db(path_to_database):
     """
     Create database for parsed data from habrahabr
-        :param path_to_base: path where to create database
+        :param path_to_database: path where to create database
         :return: None
     """
     try:
-        db = sqlite3.connect(path_to_base)
+        db = sqlite3.connect(path_to_database)
         cursor = db.cursor()
         cursor.execute(
             """
@@ -278,14 +278,14 @@ def _vectorize_data_post_text(data, words_space):
         vector[words_space.index(word)] = 1
     data['body'] = vector
 
-def append_parsed_habr_data_to_db(data, path_to_base):
+def append_parsed_habr_data_to_db(data, path_to_database):
     """
     Insert parsed post data into database
         :param data: parsed post data
-        :param path_to_base: path to database
+        :param path_to_database: path to database
     """
     try:
-        db = sqlite3.connect(path_to_base)
+        db = sqlite3.connect(path_to_database)
         cursor = db.cursor()
         cursor.execute(
             """
@@ -303,13 +303,13 @@ def append_parsed_habr_data_to_db(data, path_to_base):
     finally:
         db.close()
 
-def save_hub_to_db(hub_name, path_to_base):
+def save_hub_to_db(hub_name, path_to_database):
     """
     Save all hub's posts to database
         :param hub_name: name of hub
-        :param path_to_base: path to database
+        :param path_to_database: path to database
     """
-    init_parsed_habr_data_db(path_to_base)
+    init_parsed_habr_data_db(path_to_database)
     articles = get_all_hub_article_urls(hub_name)
     ioloop = asyncio.get_event_loop()
     threads_count = 24 # Habr accept 24 and less connections?
@@ -322,4 +322,4 @@ def save_hub_to_db(hub_name, path_to_base):
         index += threads_count
         dateArray += ioloop.run_until_complete(asyncio.gather(*tasks))
     for parsed_date in dateArray:
-        append_parsed_habr_data_to_db(parsed_date,path_to_base)
+        append_parsed_habr_data_to_db(parsed_date,path_to_database)

@@ -6,10 +6,18 @@ import re
 import asyncio
 import aiohttp
 import sqlite3
+import logging
 from lxml.html import parse, document_fromstring
 from lxml.builder import E
 from urllib.request import urlopen 
 from collections import Counter
+
+logger = logging.getLogger(__name__)
+logger.setLevel('DEBUG')
+ch = logging.StreamHandler()
+ch.setLevel('DEBUG')
+ch.setFormatter(logging.Formatter("[%(filename)s:%(funcName)s:%(lineno)s]%(levelname)s: %(message)s"))
+logger.addHandler(ch)
 
 
 def _normalize_views_count(views_string):
@@ -89,35 +97,43 @@ async def parseHabr(link):
                 page = await session.get(link, timeout=120)
                 if page.status == 200:
                     break
-                print(f"status for {link} is {page.status}, wait 1 second")
+                if page.status >= 500:
+                    logger.info(f"status for {link} is {page.status}, wait 1 second")
+                else:
+                    logger.info(f"link {link} is not valid habrahabr link, return None")
+                    return None
                 await asyncio.sleep(1)
             pageHtml = await page.text()
             data = document_fromstring(pageHtml)
     except IOError as e:
-        print("parseHabr link error: "+e.args[0])
+        logger.warn("link error: "+repr(e))
         return None
 
-    post['title'] = data.find(_find_tags['title']).text
+    logger.info(f"start parse {link}")
+
+    try:
+        post['title'] = data.find(_find_tags['title']).text
+    except Exception as e:
+        logger.warn(f"error while parse title: {repr(e)}")
+        post['title'] = None
+
     try:
         post['author'] = data.find(_find_tags['author']).text
     except Exception as e:
-        print("parseHabr error: "+e.args[0])
-        print(f"link: {link}")
+        logger.warn(f"error while parse author: {repr(e)}")
         post['author'] = None
 
     try:
         post['body'] = _body2text(data.find(_find_tags['body']))
     except Exception as e:
-        print("parseHabr error: "+e.args[0])
-        print(f"link: {link}")
+        logger.warn(f"error while parse post body: {repr(e)}")
         post['body'] = None
 
     try:
         raw_rating = data.xpath(_find_tags['rating'])[0].text
         post['rating'] = _normalize_rating(raw_rating)
     except Exception as e:
-        print("parseHabr error: "+e.args[0])
-        print(f"link: {link}")
+        logger.warn(f"error while parse rating: {repr(e)}")
         post['rating']=None
 
     try:
@@ -125,23 +141,20 @@ async def parseHabr(link):
         # Maybe use `_normalize_views_count`?
         post['comments'] = int(data.find(_find_tags['comments count']).text)
     except Exception as e:
-        print("parseHabr error: "+e.args[0])
-        print(f"link: {link}") 
+        logger.warn(f"error while parse comments: {repr(e)}")
         post['comments'] = None
 
     try:
         raw_views = data.find(_find_tags['views count']).text
         post['views'] = _normalize_views_count(raw_views)
     except Exception as e:
-        print("parseHabr error: "+e.args[0])
-        print(f"link: {link}")
+        logger.warn(f"error while parse views: {repr(e)}")
         post['views'] = None
 
     try:
         post['bookmarks'] = int(data.find(_find_tags['bookmarks count']).text)
     except Exception as e:
-        print("parseHabr error: "+e.args[0])
-        print(f"link: {link}")
+        logger.warn(f"error while parse bookmarks: {repr(e)}")
         post['bookmarks'] = None
 
     return post
@@ -178,11 +191,10 @@ async def get_articles_from_page(page_url):
                 page_response = await session.get(page_url, timeout=120)
                 if page_response.status == 200:
                     break
-                print(f"code {page_response.status} for {page_url}, wait 1 second")
+                logger.info(f"code {page_response.status} for {page_url}, wait 1 second")
                 await asyncio.sleep(1)
         except Exception as e:
-            print("parseHabr link error: "+e.args[0])
-            print(f"link: {page_url}")
+            logger.warn("error with link {page_url}: "+repr(e))
             return None
         page_html = await page_response.text()
         if _is_page_contains_article(page_html):
@@ -240,7 +252,7 @@ def init_parsed_habr_data_db(path_to_database):
             """)
         db.commit()
     except Exception as e:
-        print("habrParser db error: "+e.args[0])
+        logger.ward("database error: "+repr(e))
     finally:
         db.close()
 
@@ -299,7 +311,7 @@ def append_parsed_habr_data_to_db(data, path_to_database):
             )
         db.commit()
     except Exception as e:
-        print("habrParser db error: "+e.args[0])
+        logger.warn("error while insert entry into database: "+repr(e))
     finally:
         db.close()
 

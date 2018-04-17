@@ -312,14 +312,18 @@ def _vectorize_data_post_text(data, words_space):
         vector[words_space.index(word)] = 1
     data['body'] = vector
 
-def append_parsed_habr_data_to_db(data, path_to_database):
+def append_parsed_habr_data_to_db(data, path_to_database, open_database = None):
     """
     Insert parsed post data into database
         :param data: parsed post data
         :param path_to_database: path to database
     """
     try:
-        db = sqlite3.connect(path_to_database)
+        if not open_database:
+            db = sqlite3.connect(path_to_database)
+        else:
+            logger.info('Use already open db')
+            db = open_database
         cursor = db.cursor()
         cursor.execute(
             """
@@ -335,7 +339,8 @@ def append_parsed_habr_data_to_db(data, path_to_database):
     except Exception as e:
         logger.warn(f'error while insert entry into database: {repr(e)}')
     finally:
-        db.close()
+        if not open_database:
+            db.close()
 
 def save_hub_to_db(hub_name, path_to_database):
     """
@@ -355,5 +360,9 @@ def save_hub_to_db(hub_name, path_to_database):
             tasks.append(asyncio.ensure_future(parseHabr(articles[i])))
         index += threads_count
         dateArray += ioloop.run_until_complete(asyncio.gather(*tasks))
-    for parsed_date in dateArray:
-        append_parsed_habr_data_to_db(parsed_date,path_to_database)
+    db = sqlite3.connect(path_to_database)
+    try:
+        for parsed_date in dateArray:
+            append_parsed_habr_data_to_db(parsed_date,path_to_database, db)
+    finally:
+        db.close()

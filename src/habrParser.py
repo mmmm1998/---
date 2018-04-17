@@ -238,11 +238,13 @@ def get_all_hub_article_urls(hub):
         tasks = []
         for i in range(page_number,page_number+threads_count):
             page_url = baseurl+'page'+str(i)
+            logger.info(f"load hub '{hub}' page {str(i)}")
             tasks.append(asyncio.ensure_future(get_articles_from_page(page_url)))
         page_number += threads_count
         results = ioloop.run_until_complete(asyncio.gather(*tasks))
         for url, result in results:
             if len(result) == 0 and not is_pages_end:
+                logger.info(f"hub '{hub}' last page is {url[url.find('page')+4:]}")
                 is_pages_end = True
             articles += result
     return articles
@@ -272,7 +274,7 @@ def init_parsed_habr_data_db(path_to_database):
             """)
         db.commit()
     except Exception as e:
-        logger.ward("database error: "+repr(e))
+        logger.warn("database error: "+repr(e))
     finally:
         db.close()
 

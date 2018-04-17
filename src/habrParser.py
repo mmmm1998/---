@@ -279,6 +279,11 @@ def _vectorize_data_post_text(data, words_space):
     data['body'] = vector
 
 def append_parsed_habr_data_to_db(data, path_to_base):
+    """
+    Insert parsed post data into database
+        :param data: parsed post data
+        :param path_to_base: path to database
+    """
     try:
         db = sqlite3.connect(path_to_base)
         cursor = db.cursor()
@@ -299,6 +304,11 @@ def append_parsed_habr_data_to_db(data, path_to_base):
         db.close()
 
 def save_hub_to_db(hub_name, path_to_base):
+    """
+    Save all hub's posts to database
+        :param hub_name: name of hub
+        :param path_to_base: path to database
+    """
     init_parsed_habr_data_db(path_to_base)
     articles = get_all_hub_article_urls(hub_name)
     ioloop = asyncio.get_event_loop()

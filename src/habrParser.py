@@ -36,6 +36,11 @@ def _normalize_views_count(views_string):
     except:
         return -1
 
+def _normalize_rating(rating_string):
+    if '–' in rating_string:
+        rating_string = rating_string.replace('–','-')
+    return int(rating_string)
+
 def _body2text(body):
     """
     Transform html tree of article body to plain normalize text (ignoring code)
@@ -52,7 +57,7 @@ _find_tags = {
     'title': './/h1[@class="post__title post__title_full"]/span[@class="post__title-text"]',
     'author': './/span[@class="user-info__nickname user-info__nickname_small"]',
     'body': './/div[@class="post__text post__text-html js-mediator-article"]',
-    'rating': './/span[@class="voting-wjt__counter voting-wjt__counter_positive  js-score"]',
+    'rating': './/span[contains(@class, "voting-wjt__counter")]',
     'comments count': './/strong[@class="comments-section__head-counter"]',
     'views count': './/span[@class="post-stats__views-count"]',
     'bookmarks count': './/span[@class="bookmark__counter js-favs_count"]'
@@ -79,30 +84,40 @@ async def parseHabr(link):
         }
 
     try:
-        async with aiohttp.request('get', link) as page:
+        async with aiohttp.ClientSession() as session:
+            while True:
+                page = await session.get(link, timeout=120)
+                if page.status == 200:
+                    break
+                print(f"status for {link} is {page.status}, wait 1 second")
+                await asyncio.sleep(1)
             pageHtml = await page.text()
             data = document_fromstring(pageHtml)
     except IOError as e:
-        print("parseHabr link error: "+e)
+        print("parseHabr link error: "+e.args[0])
         return None
 
     post['title'] = data.find(_find_tags['title']).text
     try:
         post['author'] = data.find(_find_tags['author']).text
     except Exception as e:
-        print("parseHabr error: "+e)
+        print("parseHabr error: "+e.args[0])
+        print(f"link: {link}")
         post['author'] = None
 
     try:
         post['body'] = _body2text(data.find(_find_tags['body']))
     except Exception as e:
-        print("parseHabr error: "+e)
+        print("parseHabr error: "+e.args[0])
+        print(f"link: {link}")
         post['body'] = None
 
     try:
-        post['rating'] = int(data.find(_find_tags['rating']).text)
+        raw_rating = data.xpath(_find_tags['rating'])[0].text
+        post['rating'] = _normalize_rating(raw_rating)
     except Exception as e:
-        print("parseHabr error: "+e)
+        print("parseHabr error: "+e.args[0])
+        print(f"link: {link}")
         post['rating']=None
 
     try:
@@ -110,20 +125,23 @@ async def parseHabr(link):
         # Maybe use `_normalize_views_count`?
         post['comments'] = int(data.find(_find_tags['comments count']).text)
     except Exception as e:
-        print("parseHabr error: "+e) 
+        print("parseHabr error: "+e.args[0])
+        print(f"link: {link}") 
         post['comments'] = None
 
     try:
         raw_views = data.find(_find_tags['views count']).text
         post['views'] = _normalize_views_count(raw_views)
     except Exception as e:
-        print("parseHabr error: "+e)
+        print("parseHabr error: "+e.args[0])
+        print(f"link: {link}")
         post['views'] = None
 
     try:
         post['bookmarks'] = int(data.find(_find_tags['bookmarks count']).text)
     except Exception as e:
-        print("parseHabr error: "+e)
+        print("parseHabr error: "+e.args[0])
+        print(f"link: {link}")
         post['bookmarks'] = None
 
     return post
@@ -156,12 +174,15 @@ async def get_articles_from_page(page_url):
     """
     async with aiohttp.ClientSession() as session:
         try:
-            page_response = await session.get(page_url, timeout=120)
-            while page_response.status == 503:
-                print("code 503 for {}, wait 5 seconds".format(page_url))
-                await asyncio.sleep(5)
+            while True:
+                page_response = await session.get(page_url, timeout=120)
+                if page_response.status == 200:
+                    break
+                print(f"code {page_response.status} for {page_url}, wait 1 second")
+                await asyncio.sleep(1)
         except Exception as e:
             print("parseHabr link error: "+e.args[0])
+            print(f"link: {page_url}")
             return None
         page_html = await page_response.text()
         if _is_page_contains_article(page_html):

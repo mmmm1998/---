@@ -61,9 +61,27 @@ def _body2text(body):
         elem.getparent().remove(elem)
     return body.text_content().lower()
 
+async def _safe_request(link, session):
+    max_attempt = 3
+    attempt = 0
+    while attempt < max_attempt:
+        page = await session.get(link, timeout=120)
+        attempt += 1
+        if page.status == 200:
+            break
+        if page.status >= 500:
+            logger.info(f"status for {link} is {page.status}, wait 1 second")
+        else:
+            logger.warn(f"link {link} is not valid, return None")
+            return None
+        page = None
+        await asyncio.sleep(1)
+    return page
+
 _find_tags = {
     'title': './/h1[@class="post__title post__title_full"]/span[@class="post__title-text"]',
     'author': './/span[@class="user-info__nickname user-info__nickname_small"]',
+    'author_karma_rating_followers': './/div[contains(@class, "stacked-counter__value")]',
     'body': './/div[@class="post__text post__text-html js-mediator-article"]',
     'rating': './/span[contains(@class, "voting-wjt__counter")]',
     'comments count': './/strong[@class="comments-section__head-counter"]',
@@ -74,7 +92,7 @@ _find_tags = {
 async def parseHabr(link):
     """
     Parse article and return dictionary with info about it:
-    its title, body, rating, comments count, views count and bookmarked count.
+    its title, body, author karma, author rating, author followers count, rating, comments count, views count and bookmarked count.
     Therefore, the returned dict will have the following keys:
     title, body, rating, comments, views, bookmarks.
     Async function.
@@ -84,44 +102,49 @@ async def parseHabr(link):
     post = {
         'title': None,
         'body': None, 
-        'author': None, 
+        'author karma': None, 
+        'author rating': None,
+        'author followers': None,
         'rating': None, 
         'comments': None,
         'views': None,
         'bookmarks': None
         }
 
-    try:
-        async with aiohttp.ClientSession() as session:
-            while True:
-                page = await session.get(link, timeout=120)
-                if page.status == 200:
-                    break
-                if page.status >= 500:
-                    logger.info(f"status for {link} is {page.status}, wait 1 second")
-                else:
-                    logger.info(f"link {link} is not valid habrahabr link, return None")
-                    return None
-                await asyncio.sleep(1)
+    async with aiohttp.ClientSession() as session:
+        try:
+            page = await _safe_request(link, session)
             pageHtml = await page.text()
             data = document_fromstring(pageHtml)
-    except IOError as e:
-        logger.warn("link error: "+repr(e))
-        return None
+        except IOError as e:
+            logger.warn("link error: "+repr(e))
+            return None
 
-    logger.info(f"start parse {link}")
+        logger.info(f"start parse {link}")
 
-    try:
-        post['title'] = data.find(_find_tags['title']).text
-    except Exception as e:
-        logger.warn(f"error while parse title: {repr(e)}")
-        post['title'] = None
+        try:
+            post['title'] = data.find(_find_tags['title']).text
+        except Exception as e:
+            logger.warn(f"error while parse title: {repr(e)}")
+            post['title'] = None
 
-    try:
-        post['author'] = data.find(_find_tags['author']).text
-    except Exception as e:
-        logger.warn(f"error while parse author: {repr(e)}")
-        post['author'] = None
+        try:
+            author = data.find(_find_tags['author']).text
+            author_page = await _safe_request(f'https://habrahabr.ru/users/{author}', session)
+            author_page_html = await author_page.text()
+            author_page_tree = document_fromstring(author_page_html)
+            author_showing = author_page_tree.xpath(_find_tags['author_karma_rating_followers'])
+            if len(author_showing) == 3:
+                post['author karma'] = _normalize_views_count(author_showing[0].text)
+                post['author rating'] = _normalize_views_count(author_showing[1].text)
+                post['author followers'] = _normalize_views_count(author_showing[2].text)
+            else:
+                raise Exception("problem with tags of data showings")
+        except Exception as e:
+            logger.warn(f"error while parse author: {repr(e)}")
+            post['author karma'] = None
+            post['author rating'] = None
+            post['author followers'] = None
 
     try:
         post['body'] = _body2text(data.find(_find_tags['body']))
@@ -187,16 +210,11 @@ async def get_articles_from_page(page_url):
     """
     async with aiohttp.ClientSession() as session:
         try:
-            while True:
-                page_response = await session.get(page_url, timeout=120)
-                if page_response.status == 200:
-                    break
-                logger.info(f"code {page_response.status} for {page_url}, wait 1 second")
-                await asyncio.sleep(1)
+            page_response = await _safe_request(page_url, session)
+            page_html = await page_response.text()
         except Exception as e:
             logger.warn("error with link {page_url}: "+repr(e))
             return None
-        page_html = await page_response.text()
         if _is_page_contains_article(page_html):
             data = document_fromstring(page_html)
             page_articles = _pagebody2articles(data)    
@@ -243,7 +261,9 @@ def init_parsed_habr_data_db(path_to_database):
             CREATE TABLE DATA (
                 id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 body TEXT NOT NULL,
-                author TEXT NOT NULL,
+                author_karma INTEGER NOT NULL,
+                author_rating INTEGER NOT NULL,
+                author_followers INTEGER NOT NULL,
                 rating INTEGER NOT NULL,
                 comments INTEGER NOT NULL,
                 views INTEGER NOT NULL,
@@ -302,16 +322,16 @@ def append_parsed_habr_data_to_db(data, path_to_database):
         cursor.execute(
             """
             INSERT INTO DATA
-                (body, author, rating, comments, views, bookmarks)
+                (body, author_karma, author_rating, author_followers, rating, comments, views, bookmarks)
             VALUES
-                (?, ?, ?, ?, ?, ?);
+                (?, ?, ?, ?, ?, ?, ?, ?);
             """,
-            (data['body'], data['author'], data['rating'], data['comments'], 
-                data['views'], data['bookmarks'])
+            (data['body'], data['author karma'], data['author rating'], data['author followers'],
+                data['rating'], data['comments'], data['views'], data['bookmarks'])
             )
         db.commit()
     except Exception as e:
-        logger.warn("error while insert entry into database: "+repr(e))
+        logger.warn(f'error while insert entry into database: {repr(e)}')
     finally:
         db.close()
 

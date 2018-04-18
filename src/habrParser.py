@@ -81,6 +81,7 @@ async def _safe_request(link, session):
 _find_tags = {
     'title': './/h1[@class="post__title post__title_full"]/span[@class="post__title-text"]',
     'author': './/span[@class="user-info__nickname user-info__nickname_small"]',
+    'author_readonly': './/sup[@class="author-info__status"]',
     'author_karma_rating_followers': './/div[contains(@class, "stacked-counter__value")]',
     'body': './/div[@class="post__text post__text-html js-mediator-article"]',
     'rating': './/span[contains(@class, "voting-wjt__counter")]',
@@ -139,9 +140,16 @@ async def parseHabr(link):
                 post['author rating'] = _normalize_views_count(author_showing[1].text)
                 post['author followers'] = _normalize_views_count(author_showing[2].text)
             else:
-                raise Exception("problem with tags of data showings")
+                tmp = author_page_tree.find(_find_tags['author_readonly'])
+                if len(author_showing) == 0 and tmp is not None and tmp.text == 'read-only':
+                    logger.info(f'Author for {link} is "{author}", who read-only')
+                    post['author karma'] = 0
+                    post['author rating'] = 0
+                    post['author followers'] = 0
+                else:
+                    raise Exception("problem with tags of data showings")
         except Exception as e:
-            logger.warn(f"error while parse author: {repr(e)}")
+            logger.warn(f"error while parse author '{author}': {repr(e)}")
             post['author karma'] = None
             post['author rating'] = None
             post['author followers'] = None
@@ -353,7 +361,7 @@ def save_hub_to_db(hub_name, path_to_database):
     init_parsed_habr_data_db(path_to_database)
     articles = get_all_hub_article_urls(hub_name)
     ioloop = asyncio.get_event_loop()
-    threads_count = 24 # Habr accept 24 and less connections?
+    threads_count = 12 # Habr accept 24 and less connections?
     dateArray = []
     index = 0
     while index < len(articles):
@@ -362,9 +370,23 @@ def save_hub_to_db(hub_name, path_to_database):
             tasks.append(asyncio.ensure_future(parseHabr(articles[i])))
         index += threads_count
         dateArray += ioloop.run_until_complete(asyncio.gather(*tasks))
+    logger.info(f"parsed {len(dateArray)} articles from hub '{hub_name}'")
     db = sqlite3.connect(path_to_database)
     try:
         for parsed_date in dateArray:
             append_parsed_habr_data_to_db(parsed_date,path_to_database, db)
+    finally:
+        db.close()
+
+def load_data_from_db(path_to_database):
+    try:
+        db = sqlite3.connect(path_to_database)
+        cursor = db.cursor()
+        data = []
+        for row in cursor.execute('SELECT * FROM DATA'):
+            data.append(row)
+        return data
+    except Exception as e:
+        logger.warn(f'error while select data from database: {repr(e)}')
     finally:
         db.close()

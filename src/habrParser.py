@@ -262,6 +262,7 @@ def init_parsed_habr_data_db(path_to_database):
             """
             CREATE TABLE DATA (
                 id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
                 body TEXT NOT NULL,
                 author_karma INTEGER NOT NULL,
                 author_rating INTEGER NOT NULL,
@@ -328,12 +329,13 @@ def append_parsed_habr_data_to_db(data, path_to_database, open_database = None):
         cursor.execute(
             """
             INSERT INTO DATA
-                (body, author_karma, author_rating, author_followers, rating, comments, views, bookmarks)
+                (title, body, author_karma, author_rating, author_followers, rating, comments, views, bookmarks)
             VALUES
-                (?, ?, ?, ?, ?, ?, ?, ?);
+                (?, ?, ?, ?, ?, ?, ?, ?, ?);
             """,
-            (data['body'], data['author karma'], data['author rating'], data['author followers'],
-                data['rating'], data['comments'], data['views'], data['bookmarks'])
+            (data['title'], data['body'], data['author karma'], data['author rating'],
+                data['author followers'], data['rating'], data['comments'], data['views'],
+                data['bookmarks'])
             )
         db.commit()
     except Exception as e:

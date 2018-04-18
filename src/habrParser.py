@@ -79,6 +79,7 @@ async def _safe_request(link, session):
     return page
 
 _find_tags = {
+    'post date':'.//span[@class="post__time"]',
     'title': './/h1[@class="post__title post__title_full"]/span[@class="post__title-text"]',
     'author': './/span[@class="user-info__nickname user-info__nickname_small"]',
     'author_readonly': './/sup[@class="author-info__status"]',
@@ -90,7 +91,7 @@ _find_tags = {
     'bookmarks count': './/span[@class="bookmark__counter js-favs_count"]'
 }
 # Sven: maybe rename this to `parseArticle'?
-async def parseHabr(link):
+async def parseHabr(link, year_filter = None):
     """
     Parse article and return dictionary with info about it:
     its title, body, author karma, author rating, author followers count, rating, comments count, views count and bookmarked count.
@@ -98,6 +99,7 @@ async def parseHabr(link):
     title, body, rating, comments, views, bookmarks.
     Async function.
         :param link: url to article
+        :param year_filter: posts younger, that year_filter, will be ignored
         :return: dict described above
     """
     post = {
@@ -122,6 +124,18 @@ async def parseHabr(link):
             return None
 
         logger.info(f"start parse {link}")
+        if (year_filter):
+            datastr = data.find(_find_tags['post date']).text.lstrip(' ')
+            is_writed_yesterday = 'вчера' in datastr
+            is_writed_today = 'сегодня' in datastr
+            is_writed_in_this_year = datastr.split(' ')[2] == 'в'
+            if is_writed_in_this_year or is_writed_today or is_writed_yesterday:
+                year = datetime.datetime.now().year
+            else:
+                year = int(datastr.split(' ')[2])
+            if year > year_filter:
+                logger.info(f"post {link} writed in {year} but limit is {year_filter}, so drop")
+                return None
 
         try:
             post['title'] = data.find(_find_tags['title']).text
@@ -352,24 +366,25 @@ def append_parsed_habr_data_to_db(data, path_to_database, open_database = None):
         if not open_database:
             db.close()
 
-def save_hub_to_db(hub_name, path_to_database):
+def save_hub_to_db(hub_name, path_to_database, year_filter=None):
     """
     Save all hub's posts to database
         :param hub_name: name of hub
         :param path_to_database: path to database
+        :param year_filter: posts younger, that year_filter, will be ignored
     """
     init_parsed_habr_data_db(path_to_database)
     articles = get_all_hub_article_urls(hub_name)
     ioloop = asyncio.get_event_loop()
-    threads_count = 12 # Habr accept 24 and less connections?
+    threads_count = 12 # Habr accept 24 and less connections 
     dateArray = []
     index = 0
     while index < len(articles):
         tasks = []
         for i in range(index,min(index+threads_count, len(articles))):
-            tasks.append(asyncio.ensure_future(parseHabr(articles[i])))
+            tasks.append(asyncio.ensure_future(parseHabr(articles[i], year_filter=year_filter)))
         index += threads_count
-        dateArray += ioloop.run_until_complete(asyncio.gather(*tasks))
+        dateArray += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))
     logger.info(f"parsed {len(dateArray)} articles from hub '{hub_name}'")
     db = sqlite3.connect(path_to_database)
     try:

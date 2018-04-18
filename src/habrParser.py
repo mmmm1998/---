@@ -7,6 +7,7 @@ import asyncio
 import aiohttp
 import sqlite3
 import logging
+import datetime
 from lxml.html import parse, document_fromstring
 from lxml.builder import E
 from urllib.request import urlopen 
@@ -90,8 +91,7 @@ _find_tags = {
     'views count': './/span[@class="post-stats__views-count"]',
     'bookmarks count': './/span[@class="bookmark__counter js-favs_count"]'
 }
-# Sven: maybe rename this to `parseArticle'?
-async def parseHabr(link, year_filter = None):
+async def parseArticle(link, year_filter = None):
     """
     Parse article and return dictionary with info about it:
     its title, body, author karma, author rating, author followers count, rating, comments count, views count and bookmarked count.
@@ -382,7 +382,7 @@ def save_hub_to_db(hub_name, path_to_database, year_filter=None):
     while index < len(articles):
         tasks = []
         for i in range(index,min(index+threads_count, len(articles))):
-            tasks.append(asyncio.ensure_future(parseHabr(articles[i], year_filter=year_filter)))
+            tasks.append(asyncio.ensure_future(parseArticle(articles[i], year_filter=year_filter)))
         index += threads_count
         dateArray += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))
     logger.info(f"parsed {len(dateArray)} articles from hub '{hub_name}'")
@@ -393,7 +393,11 @@ def save_hub_to_db(hub_name, path_to_database, year_filter=None):
     finally:
         db.close()
 
-def load_data_from_db(path_to_database):
+def load_all_data_from_db(path_to_database):
+    """
+    Load all parsed data from database
+        :param path_to_database: path to database
+    """
     try:
         db = sqlite3.connect(path_to_database)
         cursor = db.cursor()

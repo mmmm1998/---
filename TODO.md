@@ -1,6 +1,4 @@
 ### Necessary TODO
-1. Add cosine function in word space
+1. Realise Pavel idea for prediction rating of article
 
 ### Idea
-1. maybe try linear regression with parameters per one views?
-

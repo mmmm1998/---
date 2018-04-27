@@ -429,3 +429,64 @@ def transorm_hub_db_to_vectorize_db(path_to_database, path_to_vectorize_database
             append_vectorize_habr_data_to_db(parsed_date,path_to_database, db)
     finally:
         db.close()
+
+def init_vectorize_habr_data_db(path_to_database):
+    """
+    Create database for vectorize data from habrahabr
+        :param path_to_database: path where to create database
+        :return: None
+    """
+    try:
+        db = sqlite3.connect(path_to_database)
+        cursor = db.cursor()
+        cursor.execute(
+            """
+            CREATE TABLE DATA (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                text_vector TEXT NOT NULL,
+                author_karma INTEGER NOT NULL,
+                author_rating INTEGER NOT NULL,
+                author_followers INTEGER NOT NULL,
+                rating INTEGER NOT NULL,
+                comments INTEGER NOT NULL,
+                views INTEGER NOT NULL,
+                bookmarks INTEGER NOT NULL
+            )
+            """)
+        db.commit()
+    except Exception as e:
+        logger.warn("database error: "+repr(e))
+    finally:
+        db.close()
+
+def append_vectorize_habr_data_to_db(data, path_to_database, open_database = None):
+    """
+    Insert vectorize post data into database
+        :param data: parsed post data
+        :param path_to_database: path to database
+    """
+    try:
+        if not open_database:
+            db = sqlite3.connect(path_to_database)
+        else:
+            logger.info('Use already open db')
+            db = open_database
+        cursor = db.cursor()
+        cursor.execute(
+            """
+            INSERT INTO DATA
+                (title, body_vector, author_karma, author_rating, author_followers, rating, comments, views, bookmarks)
+            VALUES
+                (?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """,
+            (data['title'], data['body'], data['author karma'], data['author rating'],
+                data['author followers'], data['rating'], data['comments'], data['views'],
+                data['bookmarks'])
+            )
+        db.commit()
+    except Exception as e:
+        logger.warn(f'error while insert entry into database: {repr(e)}')
+    finally:
+        if not open_database:
+            db.close()

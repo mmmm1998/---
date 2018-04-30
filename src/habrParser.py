@@ -425,7 +425,7 @@ def transorm_hub_db_to_vectorize_db(path_to_database, path_to_vectorize_database
     init_vectorize_habr_data_db(path_to_vectorize_database)
     db = sqlite3.connect(path_to_vectorize_database)
     try:
-        for parsed_date in dateArray:
+        for parsed_date in all_data:
             append_vectorize_habr_data_to_db(parsed_date,path_to_database, db)
     finally:
         db.close()

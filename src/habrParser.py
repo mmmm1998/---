@@ -92,7 +92,8 @@ _find_tags = {
     'views count': './/span[@class="post-stats__views-count"]',
     'bookmarks count': './/span[@class="bookmark__counter js-favs_count"]'
 }
-async def parseArticle(link, year_filter = None):
+
+async def parse_article(link, year_filter = None):
     """
     Parse article and return dictionary with info about it:
     its title, body, author karma, author rating, author followers count, rating, comments count, views count and bookmarked count.
@@ -205,7 +206,7 @@ async def parseArticle(link, year_filter = None):
 
     return post
 
-def _is_page_contains_article(page_html):
+def _is_page_nonempty(page_html):
     """
     Check if hub page contains articles.
         :param: html text of page
@@ -238,7 +239,7 @@ async def get_articles_from_page(page_url):
         except Exception as e:
             logger.warn("error with link {page_url}: "+repr(e))
             return None
-        if _is_page_contains_article(page_html):
+        if _is_page_nonempty(page_html):
             data = document_fromstring(page_html)
             page_articles = _pagebody2articles(data)    
             return page_url, page_articles
@@ -272,7 +273,7 @@ def get_all_hub_article_urls(hub):
             articles += result
     return articles
 
-def init_parsed_habr_data_db(path_to_database):
+def init_text_db(path_to_database):
     """
     Create database for parsed data from habrahabr
         :param path_to_database: path where to create database
@@ -323,7 +324,7 @@ def _make_words_space(data):
     wordsList = dict(filter(lambda x: x[1] > 1, wordsList.items()))
     return wordsList
 
-def _vectorize_data_post_text(data, words_space):
+def _vectorize_text(data, words_space):
     """
     Replace data post text by vector of words space.
     Vector consists of zeros and ones, where one mean, that
@@ -339,7 +340,7 @@ def _vectorize_data_post_text(data, words_space):
             vector[keys.index(word)] = 1
     data['body'] = vector
 
-def append_parsed_habr_data_to_db(data, path_to_database, open_database = None):
+def append_to_text_db(data, path_to_database, open_database = None):
     """
     Insert parsed post data into database
         :param data: parsed post data
@@ -377,7 +378,7 @@ def save_hub_to_db(hub_name, path_to_database, year_filter=None):
         :param path_to_database: path to database
         :param year_filter: posts younger, that year_filter, will be ignored
     """
-    init_parsed_habr_data_db(path_to_database)
+    init_text_db(path_to_database)
     articles = get_all_hub_article_urls(hub_name)
     ioloop = asyncio.get_event_loop()
     threads_count = 12 # Habr accept 24 and less connections 
@@ -386,14 +387,14 @@ def save_hub_to_db(hub_name, path_to_database, year_filter=None):
     while index < len(articles):
         tasks = []
         for i in range(index,min(index+threads_count, len(articles))):
-            tasks.append(asyncio.ensure_future(parseArticle(articles[i], year_filter=year_filter)))
+            tasks.append(asyncio.ensure_future(parse_article(articles[i], year_filter=year_filter)))
         index += threads_count
         dateArray += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))
     logger.info(f"parsed {len(dateArray)} articles from hub '{hub_name}'")
     db = sqlite3.connect(path_to_database)
     try:
         for parsed_date in dateArray:
-            append_parsed_habr_data_to_db(parsed_date,path_to_database, db)
+            append_to_text_db(parsed_date,path_to_database, db)
     finally:
         db.close()
 
@@ -411,7 +412,7 @@ def _loaded_data_to_parsed_data(loaded_data):
     data['bookmarks'] = loaded_data[9]
     return data
 
-def load_all_data_from_db(path_to_database):
+def load_text_db(path_to_database):
     """
     Load all parsed data from database
         :param path_to_database: path to database
@@ -428,26 +429,26 @@ def load_all_data_from_db(path_to_database):
     finally:
         db.close()
 
-def transform_hub_db_to_vectorize_db(path_to_database, path_to_vectorize_database):
+def cvt_text_db_to_vec_db(path_to_database, path_to_vectorize_database):
     """
     Read all data from hub database, transform each post data text
     to vector in word spaces and save result as new database.
         :param path_to_database: database with hub data
         :param path_to_vectorize_database: path to new database with vectorize hub data
     """
-    all_data = load_all_data_from_db(path_to_database)
+    all_data = load_text_db(path_to_database)
     words_space = _make_words_space(all_data)
     for post_data in all_data:
-        _vectorize_data_post_text(post_data, words_space)
-    init_vectorize_habr_data_db(path_to_vectorize_database)
+        _vectorize_text(post_data, words_space)
+    init_vec_db(path_to_vectorize_database)
     db = sqlite3.connect(path_to_vectorize_database)
     try:
         for parsed_date in all_data:
-            append_vectorize_habr_data_to_db(parsed_date,path_to_database, db)
+            append_to_vec_db(parsed_date,path_to_database, db)
     finally:
         db.close()
 
-def init_vectorize_habr_data_db(path_to_database):
+def init_vec_db(path_to_database):
     """
     Create database for vectorize data from habrahabr
         :param path_to_database: path where to create database
@@ -480,7 +481,7 @@ def init_vectorize_habr_data_db(path_to_database):
 def _text_vector_to_str(vector):
     return ' '.join(str(x) for x in vector)
 
-def append_vectorize_habr_data_to_db(data, path_to_database, open_database = None):
+def append_to_vec_db(data, path_to_database, open_database = None):
     """
     Insert vectorize post data into database
         :param data: parsed post data
@@ -516,7 +517,7 @@ def _loaded_vectorize_data_to_parsed_data(loaded_data):
     data['body'] = [int(x) for x in data['body'].split()]
     return data
 
-def load_all_vectorize_data_from_db(path_to_database):
+def load_vec_db(path_to_database):
     """
     Load all vectorize parsed data from database
         :param path_to_database: path to database

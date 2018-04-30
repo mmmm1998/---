@@ -510,3 +510,25 @@ def append_vectorize_habr_data_to_db(data, path_to_database, open_database = Non
     finally:
         if not open_database:
             db.close()
+
+def _loaded_vectorize_data_to_parsed_data(loaded_data):
+    data = _loaded_data_to_parsed_data(loaded_data)
+    data['body'] = [int(x) for x in data['body'].split()]
+    return data
+
+def load_all_vectorize_data_from_db(path_to_database):
+    """
+    Load all vectorize parsed data from database
+        :param path_to_database: path to database
+    """
+    try:
+        db = sqlite3.connect(path_to_database)
+        cursor = db.cursor()
+        data = []
+        for row in cursor.execute('SELECT * FROM DATA'):
+            data.append(_loaded_vectorize_data_to_parsed_data(row))
+        return data
+    except Exception as e:
+        logger.warn(f'error while select data from database: {repr(e)}')
+    finally:
+        db.close()

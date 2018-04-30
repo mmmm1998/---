@@ -412,19 +412,19 @@ def load_all_data_from_db(path_to_database):
         db.close()
 
 def transorm_hub_db_to_vectorize_db(path_to_database, path_to_vectorize_database):
-	"""
-	Read all data from hub database, transform each post data text
-	to vector in word spaces and save result as new database.
-		:param path_to_database: database with hub data
-		:param path_to_vectorize_database: path to new database with vectorize hub data
-	"""
-	all_data = load_all_data_from_db(path_to_database)
-	words_space = _make_words_space(all_data)
-	for post_data in all_data:
-		_vectorize_data_post_text(post_data, words_space)
-	init_vectorize_habr_data_db(path_to_vectorize_database)
-	db = sqlite3.connect(path_to_vectorize_database)
-	try:
+    """
+    Read all data from hub database, transform each post data text
+    to vector in word spaces and save result as new database.
+        :param path_to_database: database with hub data
+        :param path_to_vectorize_database: path to new database with vectorize hub data
+    """
+    all_data = load_all_data_from_db(path_to_database)
+    words_space = _make_words_space(all_data)
+    for post_data in all_data:
+        _vectorize_data_post_text(post_data, words_space)
+    init_vectorize_habr_data_db(path_to_vectorize_database)
+    db = sqlite3.connect(path_to_vectorize_database)
+    try:
         for parsed_date in dateArray:
             append_vectorize_habr_data_to_db(parsed_date,path_to_database, db)
     finally:

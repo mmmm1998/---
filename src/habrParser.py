@@ -331,9 +331,12 @@ def _vectorize_data_post_text(data, words_space):
         :param data: parsed post data
         :param words_space: result of _make_words_space function
     """
-    vector = [0] * len(words_space)
-    for word in data['body'].split():
-        vector[words_space.index(word)] = 1
+    keys = list(words_space.keys())
+    vector = [0] * len(keys)
+    words = re.split('[^a-z|а-я|A-Z|А-Я]', data['body'])
+    for word in words:
+        if word in words_space:
+            vector[keys.index(word)] = 1
     data['body'] = vector
 
 def append_parsed_habr_data_to_db(data, path_to_database, open_database = None):
@@ -394,6 +397,20 @@ def save_hub_to_db(hub_name, path_to_database, year_filter=None):
     finally:
         db.close()
 
+def _loaded_data_to_parsed_data(loaded_data):
+    data = {}
+    # loaded_data[0] is index, ignore it
+    data['title'] = loaded_data[1]
+    data['body'] = loaded_data[2]
+    data['author karma'] = loaded_data[3]
+    data['author rating'] = loaded_data[4]
+    data['author followers'] = loaded_data[5]
+    data['rating'] = loaded_data[6]
+    data['comments'] = loaded_data[7]
+    data['views'] = loaded_data[8]
+    data['bookmarks'] = loaded_data[9]
+    return data
+
 def load_all_data_from_db(path_to_database):
     """
     Load all parsed data from database
@@ -404,7 +421,7 @@ def load_all_data_from_db(path_to_database):
         cursor = db.cursor()
         data = []
         for row in cursor.execute('SELECT * FROM DATA'):
-            data.append(row)
+            data.append(_loaded_data_to_parsed_data(row))
         return data
     except Exception as e:
         logger.warn(f'error while select data from database: {repr(e)}')
@@ -460,6 +477,9 @@ def init_vectorize_habr_data_db(path_to_database):
     finally:
         db.close()
 
+def _text_vector_to_str(vector):
+    return ' '.join(str(x) for x in vector)
+
 def append_vectorize_habr_data_to_db(data, path_to_database, open_database = None):
     """
     Insert vectorize post data into database
@@ -476,11 +496,11 @@ def append_vectorize_habr_data_to_db(data, path_to_database, open_database = Non
         cursor.execute(
             """
             INSERT INTO DATA
-                (title, body_vector, author_karma, author_rating, author_followers, rating, comments, views, bookmarks)
+                (title, text_vector, author_karma, author_rating, author_followers, rating, comments, views, bookmarks)
             VALUES
                 (?, ?, ?, ?, ?, ?, ?, ?, ?);
             """,
-            (data['title'], data['body'], data['author karma'], data['author rating'],
+            (data['title'], _text_vector_to_str(data['body']), data['author karma'], data['author rating'],
                 data['author followers'], data['rating'], data['comments'], data['views'],
                 data['bookmarks'])
             )

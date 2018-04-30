@@ -428,7 +428,7 @@ def load_all_data_from_db(path_to_database):
     finally:
         db.close()
 
-def transorm_hub_db_to_vectorize_db(path_to_database, path_to_vectorize_database):
+def transform_hub_db_to_vectorize_db(path_to_database, path_to_vectorize_database):
     """
     Read all data from hub database, transform each post data text
     to vector in word spaces and save result as new database.

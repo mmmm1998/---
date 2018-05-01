@@ -125,28 +125,30 @@ def load_text_db(path_to_database):
     finally:
         db.close()
 
-def _make_words_space(data):
+def _make_words_space(data, cutoff=3):
     """
-    Create words space from array of parsed article data
+    Create word space from parsed article data
         :param data: list of article texts
-        :return: list of all words found in articles
+        :param cutoff: minimal entries count for a word to go to dict
+        :return: dict mapping word to its index in word space vector
     """
     wordsList = {}
+    logger.info ("Preparing to make word space")
     for post in data:
         words = re.split('[^a-z|а-я|A-Z|А-Я]', post['body'])
         words = map(str.lower,words)
-        words = list(filter(lambda x: x != '',words))
+        words = list(filter(None,words))
         counter = Counter(words)
-        for word in counter:
-            if word in wordsList:
-                wordsList[word] += 1
-            else:
-                wordsList[word] = 1
-    # Remove words found only in one post
-    wordsList = dict(filter(lambda x: x[1] > 1, wordsList.items()))
+        idx = 0
+        for word in counter.most_common():
+            if word[1] < cutoff:
+                break
+            wordsList[word[0]] = idx
+            idx += 1
+    logger.info (f'Word space dimension: {len (wordsList)}')
     return wordsList
 
-def _vectorize_text(data, words_space):
+def _vectorize_text(data, word_space):
     """
     Replace data post text by vector of words space.
     Vector consists of zeros and ones, where one mean, that
@@ -154,12 +156,12 @@ def _vectorize_text(data, words_space):
         :param data: parsed post data
         :param words_space: result of _make_words_space function
     """
-    keys = list(words_space.keys())
-    vector = [0] * len(keys)
+    vector = [0] * len(word_space)
     words = re.split('[^a-z|а-я|A-Z|А-Я]', data['body'])
     for word in words:
-        if word in words_space:
-            vector[keys.index(word)] = 1
+        idx = word_space.get(word)
+        if idx != None:
+            vector[idx] = 1
     data['body'] = vector
 
 def cvt_text_db_to_vec_db(path_to_database, path_to_vectorize_database):
@@ -224,7 +226,7 @@ def append_to_vec_db(data, path_to_database, open_database = None):
         if not open_database:
             db = sqlite3.connect(path_to_database)
         else:
-            logger.info('Use already open db')
+            logger.info('Using already opened db')
             db = open_database
         cursor = db.cursor()
         cursor.execute(

@@ -158,7 +158,7 @@ def _vectorize_text(data, word_space):
     """
     vector = [0] * len(word_space)
     words = re.split('[^a-z|а-я|A-Z|А-Я]', data['body'])
-    for word in words:
+    for word in map(str.lower,words):
         idx = word_space.get(word)
         if idx != None:
             vector[idx] = 1

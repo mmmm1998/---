@@ -125,26 +125,27 @@ def load_text_db(path_to_database):
     finally:
         db.close()
 
-def _make_words_space(data, cutoff=3):
+def _make_words_space(data, cutoff=2, max_size=5000):
     """
     Create word space from parsed article data
         :param data: list of article texts
         :param cutoff: minimal entries count for a word to go to dict
+        :param max_size: maximal dimension of word space
         :return: dict mapping word to its index in word space vector
     """
-    wordsList = {}
     logger.info ("Preparing to make word space")
+    counter = Counter ()
     for post in data:
         words = re.split('[^a-z|а-я|A-Z|А-Я]', post['body'])
-        words = map(str.lower,words)
-        words = list(filter(None,words))
-        counter = Counter(words)
-        idx = 0
-        for word in counter.most_common():
-            if word[1] < cutoff:
-                break
-            wordsList[word[0]] = idx
-            idx += 1
+        words = map(str.lower, filter(None, words))
+        counter += Counter(words)
+    wordsList = {}
+    idx = 0
+    for word in counter.most_common(max_size):
+        if word[1] <= cutoff:
+            break
+        wordsList[word[0]] = idx
+        idx += 1
     logger.info (f'Word space dimension: {len (wordsList)}')
     return wordsList
 
@@ -161,7 +162,7 @@ def _vectorize_text(data, word_space):
     for word in map(str.lower,words):
         idx = word_space.get(word)
         if idx != None:
-            vector[idx] = 1
+            vector[idx] == 1
     data['body'] = vector
 
 def cvt_text_db_to_vec_db(path_to_database, path_to_vectorize_database):

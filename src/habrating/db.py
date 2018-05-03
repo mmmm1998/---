@@ -162,7 +162,7 @@ def _vectorize_text(data, word_space):
     for word in map(str.lower,words):
         idx = word_space.get(word)
         if idx != None:
-            vector[idx] == 1
+            vector[idx] = 1
     data['body'] = vector
 
 def cvt_text_db_to_vec_db(path_to_database, path_to_vectorize_database):

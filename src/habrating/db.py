@@ -130,7 +130,7 @@ def _make_words_space(data, cutoff=2, max_size=5000):
     Create word space from parsed article data
         :param data: list of article texts
         :param cutoff: minimal entries count for a word to go to dict
-        :param max_size: maximal dimension of word space
+        :param max_size: maximal dimension of word space. If equals -1, dimension unlimied
         :return: dict mapping word to its index in word space vector
     """
     logger.info ("Preparing to make word space")
@@ -141,7 +141,8 @@ def _make_words_space(data, cutoff=2, max_size=5000):
         counter += Counter(words)
     wordsList = {}
     idx = 0
-    for word in counter.most_common(max_size):
+    words = counter.most_common(max_size) if max_size != -1 else counter.most_common()
+    for word in words:
         if word[1] <= cutoff:
             break
         wordsList[word[0]] = idx
@@ -165,15 +166,16 @@ def _vectorize_text(data, word_space):
             vector[idx] = 1
     data['body'] = vector
 
-def cvt_text_db_to_vec_db(path_to_database, path_to_vectorize_database):
+def cvt_text_db_to_vec_db(path_to_database, path_to_vectorize_database, disable_words_limit=False):
     """
     Read all data from hub database, transform each post data text
     to vector in word spaces and save result as new database.
         :param path_to_database: database with hub data
         :param path_to_vectorize_database: path to new database with vectorize hub data
+	:param disable_words_limit: if True, then disable limit on words space
     """
     all_data = load_text_db(path_to_database)
-    words_space = _make_words_space(all_data)
+    words_space = _make_words_space(all_data, max_size =-1) if disable_words_limit else _make_words_space(all_data)
     for post_data in all_data:
         _vectorize_text(post_data, words_space)
     init_vec_db(path_to_vectorize_database)

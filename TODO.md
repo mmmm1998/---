@@ -1,6 +1,6 @@
 ### Necessary TODO
-1. Realise Sven idea for prediction rating of article (Sven work)
-2. Add post text as evidence and test linear and random tree forest models.
+1. Add article length to features
+2. Implement `habrating.model`
 
 ### Idea
-1. Try to predicate rating without views count, comments count, bookmarks?
+1. Try to predict rating without views count, comments count, bookmarks?

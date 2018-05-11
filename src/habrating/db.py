@@ -3,78 +3,45 @@ import asyncio
 import re
 from collections import Counter
 
+import pickle
 from . import logger
 from . import parser
 
-def init_text_db(path_to_database):
+def init_db(path_to_file):
     """
-    Create database for parsed data from habrahabr
-        :param path_to_database: path where to create database
+    Create data file for parsed data from habrahabr
+        :param path_to_file: path where to create pickle object
         :return: None
     """
     try:
-        db = sqlite3.connect(path_to_database)
-        cursor = db.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE DATA (
-                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                body TEXT NOT NULL,
-                author_karma INTEGER NOT NULL,
-                author_rating INTEGER NOT NULL,
-                author_followers INTEGER NOT NULL,
-                rating INTEGER NOT NULL,
-                comments INTEGER NOT NULL,
-                views INTEGER NOT NULL,
-                bookmarks INTEGER NOT NULL
-            )
-            """)
-        db.commit()
+        file = open(path_to_file,'wb')
+        file.close()
     except Exception as e:
-        logger.warn("database error: "+repr(e))
-    finally:
-        db.close()
+        logger.warn("error: "+repr(e))
 
-def append_to_text_db(data, path_to_database, open_database = None):
+def append_to_db(data, path_to_file, open_stream = None):
     """
-    Insert parsed post data into database
+    Insert parsed post data into data file
         :param data: parsed post data
-        :param path_to_database: path to database
+        :param path_to_file: path to data file
     """
     try:
-        if not open_database:
-            db = sqlite3.connect(path_to_database)
+        if not open_stream:
+            with open(path_to_file,'wb') as fout:
+                pickle.dump(data,fout)
         else:
-            logger.info('Use already open db')
-            db = open_database
-        cursor = db.cursor()
-        cursor.execute(
-            """
-            INSERT INTO DATA
-                (title, body, author_karma, author_rating, author_followers, rating, comments, views, bookmarks)
-            VALUES
-                (?, ?, ?, ?, ?, ?, ?, ?, ?);
-            """,
-            (data['title'], data['body'], data['author karma'], data['author rating'],
-                data['author followers'], data['rating'], data['comments'], data['views'],
-                data['bookmarks'])
-            )
-        db.commit()
+            pickle.dump(data,open_stream)
     except Exception as e:
-        logger.warn(f'error while insert entry into database: {repr(e)}')
-    finally:
-        if not open_database:
-            db.close()
+        logger.warn(f'error: {repr(e)}')
 
-def save_hub_to_text_db(hub_name, path_to_database, year_filter=None):
+def save_hub_to_text_db(hub_name, path_to_file, year_filter=None):
     """
-    Save all hub's posts to database
+    Save all hub's posts to data file
         :param hub_name: name of hub
-        :param path_to_database: path to database
+        :param path_to_file: path to loaded data file
         :param year_filter: posts younger, that year_filter, will be ignored
     """
-    init_text_db(path_to_database)
+    init_db(path_to_file)
     articles = parser.get_all_hub_article_urls(hub_name)
     ioloop = asyncio.get_event_loop()
     threads_count = 12 # Habr accept 24 and less connections 
@@ -87,43 +54,30 @@ def save_hub_to_text_db(hub_name, path_to_database, year_filter=None):
         index += threads_count
         dateArray += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))
     logger.info(f"parsed {len(dateArray)} articles from hub '{hub_name}'")
-    db = sqlite3.connect(path_to_database)
+    fout = open(path_to_file,'wb')
     try:
         for parsed_date in dateArray:
-            append_to_text_db(parsed_date,path_to_database, db)
+            append_to_db(parsed_date, path_to_file, fout)
     finally:
-        db.close()
+        fout.close()
 
-def _loaded_data_to_parsed_data(loaded_data):
-    data = {}
-    # loaded_data[0] is index, ignore it
-    data['title'] = loaded_data[1]
-    data['body'] = loaded_data[2]
-    data['author karma'] = loaded_data[3]
-    data['author rating'] = loaded_data[4]
-    data['author followers'] = loaded_data[5]
-    data['rating'] = loaded_data[6]
-    data['comments'] = loaded_data[7]
-    data['views'] = loaded_data[8]
-    data['bookmarks'] = loaded_data[9]
-    return data
-
-def load_text_db(path_to_database):
+def load_db(path_to_file):
     """
-    Load all parsed data from database
-        :param path_to_database: path to database
+    Load all parsed data from data file
+        :param path_to_file: path to data file
     """
     try:
-        db = sqlite3.connect(path_to_database)
-        cursor = db.cursor()
-        data = []
-        for row in cursor.execute('SELECT * FROM DATA'):
-            data.append(_loaded_data_to_parsed_data(row))
-        return data
+        with open(path_to_file,'rb') as fin:
+            data = []
+            while True:
+                try:
+                    data.append(pickle.load(fin))
+                except EOFError:
+                    break 
+            logger.info(f'load {len(data)} posts data')
+            return data
     except Exception as e:
-        logger.warn(f'error while select data from database: {repr(e)}')
-    finally:
-        db.close()
+        logger.warn(f'error: {repr(e)}')
 
 def _make_words_space(data, cutoff=2, max_size=5000):
     """
@@ -166,108 +120,22 @@ def _vectorize_text(data, word_space):
             vector[idx] = 1
     data['body'] = vector
 
-def cvt_text_db_to_vec_db(path_to_database, path_to_vectorize_database, disable_words_limit=False):
+def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, disable_words_limit=False):
     """
-    Read all data from hub database, transform each post data text
-    to vector in word spaces and save result as new database.
-        :param path_to_database: database with hub data
-        :param path_to_vectorize_database: path to new database with vectorize hub data
-	:param disable_words_limit: if True, then disable limit on words space
+    Read all data from hub data file, transform each post data text
+    to vector in word spaces and save result as new data file.
+        :param path_to_text_file: path to text data file
+        :param path_to_vectorize_file: path to new data file with vectorize hub data
+	    :param disable_words_limit: if True, then disable limit on words space
     """
-    all_data = load_text_db(path_to_database)
+    all_data = load_db(path_to_text_file)
     words_space = _make_words_space(all_data, max_size =-1) if disable_words_limit else _make_words_space(all_data)
     for post_data in all_data:
         _vectorize_text(post_data, words_space)
-    init_vec_db(path_to_vectorize_database)
-    db = sqlite3.connect(path_to_vectorize_database)
+    init_db(path_to_vectorize_file)
+    fout = open(path_to_vectorize_file,'wb')
     try:
         for parsed_date in all_data:
-            append_to_vec_db(parsed_date,path_to_database, db)
+            append_to_db(parsed_date, path_to_vectorize_file, fout)
     finally:
-        db.close()
-
-def init_vec_db(path_to_database):
-    """
-    Create database for vectorize data from habrahabr
-        :param path_to_database: path where to create database
-        :return: None
-    """
-    try:
-        db = sqlite3.connect(path_to_database)
-        cursor = db.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE DATA (
-                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                text_vector TEXT NOT NULL,
-                author_karma INTEGER NOT NULL,
-                author_rating INTEGER NOT NULL,
-                author_followers INTEGER NOT NULL,
-                rating INTEGER NOT NULL,
-                comments INTEGER NOT NULL,
-                views INTEGER NOT NULL,
-                bookmarks INTEGER NOT NULL
-            )
-            """)
-        db.commit()
-    except Exception as e:
-        logger.warn("database error: "+repr(e))
-    finally:
-        db.close()
-
-def _text_vector_to_str(vector):
-    return ' '.join(str(x) for x in vector)
-
-def append_to_vec_db(data, path_to_database, open_database = None):
-    """
-    Insert vectorize post data into database
-        :param data: parsed post data
-        :param path_to_database: path to database
-    """
-    try:
-        if not open_database:
-            db = sqlite3.connect(path_to_database)
-        else:
-            logger.info('Using already opened db')
-            db = open_database
-        cursor = db.cursor()
-        cursor.execute(
-            """
-            INSERT INTO DATA
-                (title, text_vector, author_karma, author_rating, author_followers, rating, comments, views, bookmarks)
-            VALUES
-                (?, ?, ?, ?, ?, ?, ?, ?, ?);
-            """,
-            (data['title'], _text_vector_to_str(data['body']), data['author karma'], data['author rating'],
-                data['author followers'], data['rating'], data['comments'], data['views'],
-                data['bookmarks'])
-            )
-        db.commit()
-    except Exception as e:
-        logger.warn(f'error while insert entry into database: {repr(e)}')
-    finally:
-        if not open_database:
-            db.close()
-
-def _loaded_vectorize_data_to_parsed_data(loaded_data):
-    data = _loaded_data_to_parsed_data(loaded_data)
-    data['body'] = [int(x) for x in data['body'].split()]
-    return data
-
-def load_vec_db(path_to_database):
-    """
-    Load all vectorize parsed data from database
-        :param path_to_database: path to database
-    """
-    try:
-        db = sqlite3.connect(path_to_database)
-        cursor = db.cursor()
-        data = []
-        for row in cursor.execute('SELECT * FROM DATA'):
-            data.append(_loaded_vectorize_data_to_parsed_data(row))
-        return data
-    except Exception as e:
-        logger.warn(f'error while select data from database: {repr(e)}')
-    finally:
-        db.close()
+        fout.close()

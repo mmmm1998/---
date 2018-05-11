@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from habrating.mainwindow import MainWindow
+from mainwindow import MainWindow
 
 app = QApplication (sys.argv)
 

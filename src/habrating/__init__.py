@@ -6,7 +6,7 @@ logger.setLevel('DEBUG')
 # Log file
 fileh = logging.FileHandler('habrating.log')
 fileh.setLevel('DEBUG')
-fileh.setFormatter(logging.Formatter("[%(filename)s:%(funcName)s:%(lineno)s]%(levelname)s: %(message)s"))
+fileh.setFormatter(logging.Formatter("[%(asctime)s][%(filename)s:%(funcName)s:%(lineno)s]%(levelname)s: %(message)s","%H:%M:%S"))
 
 ch = logging.StreamHandler()
 ch.setLevel('WARN')

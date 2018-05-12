@@ -43,13 +43,14 @@ def save_hub_to_text_db(hub_name, path_to_file, year_filter=None):
         :param year_filter: posts younger, that year_filter, will be ignored
     """
     init_db(path_to_file)
+    print('[1/2]')
     articles = parser.get_all_hub_article_urls(hub_name)
     ioloop = asyncio.get_event_loop()
     threads_count = 12 # Habr accept 24 and less connections 
     dateArray = []
     index = 0
     bar_size = len(articles) - len(articles) % threads_count + threads_count
-    print('Load articles')
+    print('[2/2]')
     bar = utils.get_bar(bar_size).start()
     while index < len(articles):
         tasks = []
@@ -95,10 +96,13 @@ def _make_words_space(data, cutoff=2, max_size=5000):
     """
     logger.info ("Preparing to make word space")
     counter = Counter ()
-    for post in data:
+    bar = utils.get_bar(len(data)).start()
+    for index, post in enumerate(data):
         words = re.split('[^a-z|а-я|A-Z|А-Я]', post['body'])
         words = map(str.lower, filter(None, words))
         counter += Counter(words)
+        bar.update(index)
+    bar.finish()
     wordsList = {}
     idx = 0
     words = counter.most_common(max_size) if max_size != -1 else counter.most_common()
@@ -135,13 +139,24 @@ def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, disable_wor
 	    :param disable_words_limit: if True, then disable limit on words space
     """
     all_data = load_db(path_to_text_file)
+    print('[1/3]')
     words_space = _make_words_space(all_data, max_size =-1) if disable_words_limit else _make_words_space(all_data)
-    for post_data in all_data:
+    print('[2/3]')
+    bar = utils.get_bar(len(all_data)).start()
+    for index, post_data in enumerate(all_data):
         _vectorize_text(post_data, words_space)
+        bar.update(index)
+    bar.finish()
+
+    print('[3/3]')
+    bar.start()
+
     init_db(path_to_vectorize_file)
     fout = open(path_to_vectorize_file,'wb')
     try:
-        for parsed_date in all_data:
+        for index, parsed_date in enumerate(all_data):
             append_to_db(parsed_date, path_to_vectorize_file, fout)
+            bar.update(index)
     finally:
         fout.close()
+        bar.finish()

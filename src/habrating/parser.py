@@ -7,6 +7,7 @@ from lxml.builder import E
 from urllib.request import urlopen 
 
 from . import logger
+from . import utils
 
 def _normalize_views_count(views_string):
     """
@@ -78,7 +79,9 @@ _find_tags = {
     'views count': './/span[@class="post-stats__views-count"]',
     'bookmarks count': './/span[@class="bookmark__counter js-favs_count"]',
     'company info': './/dt[@class="profile-section__title"]',
-    'company rating': './/sup[@class="page-header__stats-value page-header__stats-value_branding"]'
+    'company rating': './/sup[@class="page-header__stats-value page-header__stats-value_branding"]',
+    'last hub page': './/a[@class="toggle-menu__item-link toggle-menu__item-link_pagination toggle-menu__item-link_bordered"]',
+    'hub pages': './/a[@class="toggle-menu__item-link toggle-menu__item-link_pagination"]'
 }
 
 async def parse_article(link, year_filter = None):
@@ -234,6 +237,23 @@ def _pagebody2articles(tree):
     hrefs = tree.findall('.//a[@class="post__title_link"]')
     return list(map(lambda href: href.attrib['href'], hrefs))
 
+async def _get_hub_last_page(hub):
+     async with aiohttp.ClientSession() as session:
+        try:
+            url = 'https://habrahabr.ru/hub/'+hub+'/all/page1'
+            page_response = await _safe_request(url, session)
+            page_html = await page_response.text()
+        except Exception as e:
+            logger.error(f"link {url}: "+repr(e))
+            return None
+        data = document_fromstring(page_html)
+        last_page_element = data.find(_find_tags["last hub page"])
+        if last_page_element is  None:
+            # Hub too small, that link to last page in direct page link, so get last
+            last_page_element = data.xpath(_find_tags['hub pages'])[-1]
+        last_page = int(last_page_element.attrib["href"].lstrip(f'/hub/{hub}/all/page').rstrip('/'))
+        return last_page
+
 async def get_articles_from_page(page_url):
     """
     For the specified hub page return all articles contained in this page.
@@ -246,14 +266,14 @@ async def get_articles_from_page(page_url):
             page_response = await _safe_request(page_url, session)
             page_html = await page_response.text()
         except Exception as e:
-            logger.warn(f"error with link {page_url}: "+repr(e))
+            logger.warn(f"link {page_url}: "+repr(e))
             return None
         if _is_page_nonempty(page_html):
             data = document_fromstring(page_html)
-            page_articles = _pagebody2articles(data)    
-            return page_url, page_articles
+            page_articles = _pagebody2articles(data)
+            return page_articles
         else:
-            return page_url, []
+            return []
 
 def get_all_hub_article_urls(hub):
     """
@@ -263,21 +283,24 @@ def get_all_hub_article_urls(hub):
     """
     threads_count = 20 # Habr accept 24 and less connections?
     baseurl = 'https://habrahabr.ru/hub/'+hub+'/all/'
-    page_number = 1
     articles = []
-    is_pages_end = False
     ioloop = asyncio.get_event_loop()
-    while not is_pages_end:
+    last_page_number = ioloop.run_until_complete(_get_hub_last_page(hub))
+    logger.info(f'found {last_page_number} pages in {hub} hub')
+    page_number = 1
+    bar = utils.get_bar(last_page_number).start()
+    while page_number < last_page_number:
         tasks = []
-        for i in range(page_number,page_number+threads_count):
+        next_page_number = min(page_number+threads_count, last_page_number)+1
+        logger.info(f'next page: {next_page_number}')
+        for i in range(page_number,next_page_number):
             page_url = baseurl+'page'+str(i)
             logger.info(f"load hub '{hub}' page {str(i)}")
             tasks.append(asyncio.ensure_future(get_articles_from_page(page_url)))
-        page_number += threads_count
+        bar.update(page_number-1)
+        page_number = next_page_number
         results = ioloop.run_until_complete(asyncio.gather(*tasks))
-        for url, result in results:
-            if len(result) == 0 and not is_pages_end:
-                logger.info(f"hub '{hub}' last page is {url[url.find('page')+4:]}")
-                is_pages_end = True
+        for result in results:
             articles += result
+    bar.finish()
     return articles

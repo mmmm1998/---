@@ -1,2 +1,3 @@
 colour_runner
 aiohttp
+progressbar

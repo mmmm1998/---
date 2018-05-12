@@ -84,7 +84,7 @@ _find_tags = {
     'hub pages': './/a[@class="toggle-menu__item-link toggle-menu__item-link_pagination"]'
 }
 
-async def parse_article(link, year_filter = None):
+async def parse_article(link, year_up_limit = None):
     """
     Parse article and return dictionary with info about it:
     its title, body, author karma, author rating, author followers count, rating, comments count, views count and bookmarked count.
@@ -92,7 +92,7 @@ async def parse_article(link, year_filter = None):
     title, body, rating, comments, views, bookmarks.
     Async function.
         :param link: url to article
-        :param year_filter: posts younger, that year_filter, will be ignored
+        :param year_up_limit: posts younger, that year_up_limit, will be ignored
         :return: dict described above
     """
     post = {
@@ -118,7 +118,7 @@ async def parse_article(link, year_filter = None):
             logger.warn("link error: "+repr(e))
             return None
 
-        if (year_filter):
+        if (year_up_limit):
             datastr = data.find(_find_tags['post date']).text.lstrip(' ')
             is_writed_yesterday = 'вчера' in datastr
             is_writed_today = 'сегодня' in datastr
@@ -127,8 +127,8 @@ async def parse_article(link, year_filter = None):
                 year = datetime.datetime.now().year
             else:
                 year = int(datastr.split(' ')[2])
-            if year > year_filter:
-                logger.info(f"post {link} writed in {year} but limit is {year_filter}, so drop")
+            if year > year_up_limit:
+                logger.info(f"post {link} writed in {year} but limit is {year_up_limit}, so drop")
                 return None
 
         try:

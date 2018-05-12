@@ -43,14 +43,14 @@ def save_hub_to_text_db(hub_name, path_to_file, year_up_limit=None):
         :param year_up_limit: posts younger, that year_up_limit, will be ignored
     """
     init_db(path_to_file)
-    print('[1/2]')
+    print('[1/3]')
     articles = parser.get_all_hub_article_urls(hub_name)
     ioloop = asyncio.get_event_loop()
     threads_count = 12 # Habr accept 24 and less connections 
     dateArray = []
     index = 0
     bar_size = len(articles) - len(articles) % threads_count + threads_count
-    print('[2/2]')
+    print('[2/3]')
     bar = utils.get_bar(bar_size).start()
     while index < len(articles):
         tasks = []
@@ -62,12 +62,16 @@ def save_hub_to_text_db(hub_name, path_to_file, year_up_limit=None):
         dateArray += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))
     bar.finish()
     logger.info(f"parsed {len(dateArray)} articles from hub '{hub_name}'")
+    print('[3/3]')
+    bar = utils.get_bar(len(dateArray)).start()
     fout = open(path_to_file,'wb')
     try:
-        for parsed_date in dateArray:
+        for index, parsed_date in enumerate(dateArray):
             append_to_db(parsed_date, path_to_file, fout)
+            bar.update(index)
     finally:
         fout.close()
+        bar.finish()
 
 def load_db(path_to_file):
     """

@@ -76,7 +76,9 @@ _find_tags = {
     'rating': './/span[contains(@class, "voting-wjt__counter")]',
     'comments count': './/strong[@class="comments-section__head-counter"]',
     'views count': './/span[@class="post-stats__views-count"]',
-    'bookmarks count': './/span[@class="bookmark__counter js-favs_count"]'
+    'bookmarks count': './/span[@class="bookmark__counter js-favs_count"]',
+    'company info': './/dt[@class="profile-section__title"]',
+    'company rating': './/sup[@class="page-header__stats-value page-header__stats-value_branding"]'
 }
 
 async def parse_article(link, year_filter = None):
@@ -93,9 +95,11 @@ async def parse_article(link, year_filter = None):
     post = {
         'title': None,
         'body': None, 
+        'body length': None,
         'author karma': None, 
         'author rating': None,
         'author followers': None,
+        'company rating': None,
         'rating': None, 
         'comments': None,
         'views': None,
@@ -132,6 +136,17 @@ async def parse_article(link, year_filter = None):
             post['title'] = None
 
         try:
+            element = data.find(_find_tags['company rating'])
+            if element is not None:
+                post['company rating'] = float(element.text.replace(',','.').replace(' ',''))
+            else:
+                post['company rating'] = 0.0
+        except Exception as e:
+            logger.info(f"page {link}")
+            logger.warn(f"error while parse company rating: {repr(e)}")
+            post['company rating'] = None
+
+        try:
             author = data.find(_find_tags['author']).text
             author_page = await _safe_request(f'https://habrahabr.ru/users/{author}', session)
             author_page_html = await author_page.text()
@@ -158,9 +173,11 @@ async def parse_article(link, year_filter = None):
 
     try:
         post['body'] = _body2text(data.find(_find_tags['body']))
+        post['body length'] = len(post['body'])
     except Exception as e:
         logger.warn(f"error while parse post body: {repr(e)}")
         post['body'] = None
+        post['body length'] = None
 
     try:
         raw_rating = data.xpath(_find_tags['rating'])[0].text

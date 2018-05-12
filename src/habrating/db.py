@@ -54,10 +54,10 @@ def save_hub_to_text_db(hub_name, path_to_file, year_up_limit=None):
     bar = utils.get_bar(bar_size).start()
     while index < len(articles):
         tasks = []
-        next_index = min(index+threads_count, len(articles))+1
+        next_index = min(index+threads_count, len(articles))
         for i in range(index,next_index):
             tasks.append(asyncio.ensure_future(parser.parse_article(articles[i], year_up_limit=year_up_limit)))
-        bar.update(index-1)
+        bar.update(index)
         index = next_index
         dateArray += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))
     bar.finish()

@@ -1,6 +1,6 @@
 ### Necessary TODO
-1. Add article length to features
-2. Try gradient boosting model
+1. Try gradient boosting model
+2. Add author data memoization in save_hub_to_text_db
 3. Implement `habrating.model`
 
 ### Idea

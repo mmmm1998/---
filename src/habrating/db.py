@@ -6,6 +6,7 @@ from collections import Counter
 import pickle
 from . import logger
 from . import parser
+from . import utils
 
 def init_db(path_to_file):
     """
@@ -47,12 +48,17 @@ def save_hub_to_text_db(hub_name, path_to_file, year_filter=None):
     threads_count = 12 # Habr accept 24 and less connections 
     dateArray = []
     index = 0
+    bar_size = len(articles) - len(articles) % threads_count + threads_count
+    print('Load articles')
+    bar = utils.get_bar(bar_size).start()
     while index < len(articles):
         tasks = []
         for i in range(index,min(index+threads_count, len(articles))):
             tasks.append(asyncio.ensure_future(parser.parse_article(articles[i], year_filter=year_filter)))
         index += threads_count
         dateArray += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))
+        bar.update(index)
+    bar.finish()
     logger.info(f"parsed {len(dateArray)} articles from hub '{hub_name}'")
     fout = open(path_to_file,'wb')
     try:

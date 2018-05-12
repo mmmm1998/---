@@ -50,7 +50,7 @@ def _body2text(body):
     return body.text_content().lower()
 
 async def _safe_request(link, session):
-    max_attempt = 3
+    max_attempt = 10
     attempt = 0
     while attempt < max_attempt:
         page = await session.get(link, timeout=120)
@@ -115,7 +115,6 @@ async def parse_article(link, year_filter = None):
             logger.warn("link error: "+repr(e))
             return None
 
-        logger.info(f"start parse {link}")
         if (year_filter):
             datastr = data.find(_find_tags['post date']).text.lstrip(' ')
             is_writed_yesterday = 'вчера' in datastr
@@ -132,6 +131,7 @@ async def parse_article(link, year_filter = None):
         try:
             post['title'] = data.find(_find_tags['title']).text
         except Exception as e:
+            logger.info(f"page {link}")
             logger.warn(f"error while parse title: {repr(e)}")
             post['title'] = None
 
@@ -166,6 +166,7 @@ async def parse_article(link, year_filter = None):
                 else:
                     raise Exception("problem with tags of data showings")
         except Exception as e:
+            logger.info(f"page {link}")
             logger.warn(f"error while parse author '{author}': {repr(e)}")
             post['author karma'] = None
             post['author rating'] = None
@@ -175,6 +176,7 @@ async def parse_article(link, year_filter = None):
         post['body'] = _body2text(data.find(_find_tags['body']))
         post['body length'] = len(post['body'])
     except Exception as e:
+        logger.info(f"page {link}")
         logger.warn(f"error while parse post body: {repr(e)}")
         post['body'] = None
         post['body length'] = None
@@ -183,6 +185,7 @@ async def parse_article(link, year_filter = None):
         raw_rating = data.xpath(_find_tags['rating'])[0].text
         post['rating'] = _normalize_rating(raw_rating)
     except Exception as e:
+        logger.info(f"page {link}")
         logger.warn(f"error while parse rating: {repr(e)}")
         post['rating']=None
 
@@ -191,6 +194,7 @@ async def parse_article(link, year_filter = None):
         # Maybe use `_normalize_views_count`?
         post['comments'] = int(data.find(_find_tags['comments count']).text)
     except Exception as e:
+        logger.info(f"page {link}")
         logger.warn(f"error while parse comments: {repr(e)}")
         post['comments'] = None
 
@@ -198,12 +202,14 @@ async def parse_article(link, year_filter = None):
         raw_views = data.find(_find_tags['views count']).text
         post['views'] = _normalize_views_count(raw_views)
     except Exception as e:
+        logger.info(f"page {link}")
         logger.warn(f"error while parse views: {repr(e)}")
         post['views'] = None
 
     try:
         post['bookmarks'] = int(data.find(_find_tags['bookmarks count']).text)
     except Exception as e:
+        logger.info(f"page {link}")
         logger.warn(f"error while parse bookmarks: {repr(e)}")
         post['bookmarks'] = None
 
@@ -240,7 +246,7 @@ async def get_articles_from_page(page_url):
             page_response = await _safe_request(page_url, session)
             page_html = await page_response.text()
         except Exception as e:
-            logger.warn("error with link {page_url}: "+repr(e))
+            logger.warn(f"error with link {page_url}: "+repr(e))
             return None
         if _is_page_nonempty(page_html):
             data = document_fromstring(page_html)
@@ -255,7 +261,7 @@ def get_all_hub_article_urls(hub):
         :param hub: name of the hub
         :return: list of hrefs to articles
     """
-    threads_count = 24 # Habr accept 24 and less connections?
+    threads_count = 20 # Habr accept 24 and less connections?
     baseurl = 'https://habrahabr.ru/hub/'+hub+'/all/'
     page_number = 1
     articles = []

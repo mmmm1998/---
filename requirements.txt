@@ -1,3 +1,5 @@
 colour_runner
 aiohttp
 progressbar
+pandas
+sklearn

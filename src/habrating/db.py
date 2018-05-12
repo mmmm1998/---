@@ -35,39 +35,41 @@ def append_to_db(data, path_to_file, open_stream = None):
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
-def save_hub_to_text_db(hub_name, path_to_file, year_up_limit=None):
+def save_hub_to_db(hub_name, file_path, max_year=None):
     """
     Save all hub's posts to data file
         :param hub_name: name of hub
-        :param path_to_file: path to loaded data file
-        :param year_up_limit: posts younger, that year_up_limit, will be ignored
+        :param file_path: path to loaded data file
+        :param max_year: posts younger, that max_year, will be ignored
     """
-    init_db(path_to_file)
     print('[1/3]')
-    articles = parser.get_all_hub_article_urls(hub_name)
+
+    threads_count = 12 # Habr accepts n <= 24 connections
+    init_db(file_path)
+    urls = parser.get_all_hub_article_urls(hub_name)
+
     ioloop = asyncio.get_event_loop()
-    threads_count = 120
-    dateArray = []
-    index = 0
-    print('[2/3]')
-    bar = utils.get_bar(len(articles)).start()
+    articles = []
     memo = {}
-    while index < len(articles):
+
+    print('[2/3]')
+    bar = utils.get_bar(len(urls)).start()
+    for index in range(0, len(urls), threads_count):
         tasks = []
-        next_index = min(index+threads_count, len(articles))
-        for i in range(index,next_index):
-            tasks.append(asyncio.ensure_future(parser.parse_article(articles[i], year_up_limit=year_up_limit, author_memoization=memo)))
+        for url in urls[index:min(index + threads_count, len(urls))]:
+            tasks.append(asyncio.ensure_future(
+                parser.parse_article(url, year_up_limit=max_year, author_memoization=memo)))
         bar.update(index)
-        index = next_index
-        dateArray += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))
+        articles += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))
     bar.finish()
-    logger.info(f"parsed {len(dateArray)} articles from hub '{hub_name}'")
+    logger.info(f"parsed {len(articles)} articles from hub '{hub_name}'")
+
     print('[3/3]')
-    bar = utils.get_bar(len(dateArray)).start()
-    fout = open(path_to_file,'wb')
+    bar = utils.get_bar(len(articles)).start()
+    fout = open(file_path,'wb')
     try:
-        for index, parsed_date in enumerate(dateArray):
-            append_to_db(parsed_date, path_to_file, fout)
+        for index, parsed_date in enumerate(articles):
+            append_to_db(parsed_date, file_path, fout)
             bar.update(index)
     finally:
         fout.close()

@@ -296,23 +296,22 @@ def get_all_hub_article_urls(hub):
     threads_count = 20 # Habr accept 24 and less connections?
     baseurl = 'https://habrahabr.ru/hub/'+hub+'/all/'
     articles = []
+
     ioloop = asyncio.get_event_loop()
     last_page_number = ioloop.run_until_complete(_get_hub_last_page(hub))
     logger.info(f'found {last_page_number} pages in {hub} hub')
-    page_number = 1
+
     bar = utils.get_bar(last_page_number).start()
-    while page_number < last_page_number:
+    for page_number in range(1, last_page_number+1, threads_count):
+        bar.update(page_number-1)
         tasks = []
-        next_page_number = min(page_number+threads_count, last_page_number)+1
-        logger.info(f'next page: {next_page_number}')
-        for i in range(page_number,next_page_number):
+        for i in range(page_number, min(page_number+threads_count, last_page_number+1)):
             page_url = baseurl+'page'+str(i)
             logger.info(f"load hub '{hub}' page {str(i)}")
             tasks.append(asyncio.ensure_future(get_articles_from_page(page_url)))
-        bar.update(page_number-1)
-        page_number = next_page_number
         results = ioloop.run_until_complete(asyncio.gather(*tasks))
         for result in results:
             articles += result
     bar.finish()
+
     return articles

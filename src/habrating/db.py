@@ -46,17 +46,17 @@ def save_hub_to_text_db(hub_name, path_to_file, year_up_limit=None):
     print('[1/3]')
     articles = parser.get_all_hub_article_urls(hub_name)
     ioloop = asyncio.get_event_loop()
-    threads_count = 12 # Habr accept 24 and less connections 
+    threads_count = 120
     dateArray = []
     index = 0
-    bar_size = len(articles) - len(articles) % threads_count + threads_count
     print('[2/3]')
-    bar = utils.get_bar(bar_size).start()
+    bar = utils.get_bar(len(articles)).start()
+    memo = {}
     while index < len(articles):
         tasks = []
         next_index = min(index+threads_count, len(articles))
         for i in range(index,next_index):
-            tasks.append(asyncio.ensure_future(parser.parse_article(articles[i], year_up_limit=year_up_limit)))
+            tasks.append(asyncio.ensure_future(parser.parse_article(articles[i], year_up_limit=year_up_limit, author_memoization=memo)))
         bar.update(index)
         index = next_index
         dateArray += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))

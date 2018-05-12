@@ -84,15 +84,20 @@ _find_tags = {
     'hub pages': './/a[@class="toggle-menu__item-link toggle-menu__item-link_pagination"]'
 }
 
-async def parse_article(link, year_up_limit = None):
+async def parse_article(link, year_up_limit = None, author_memoization=None):
     """
     Parse article and return dictionary with info about it:
-    its title, body, author karma, author rating, author followers count, rating, comments count, views count and bookmarked count.
+    its title, body, body length, author karma, author rating, author followers count, author company rating,
+    rating, comments count, views count and bookmarked count.
+
     Therefore, the returned dict will have the following keys:
-    title, body, rating, comments, views, bookmarks.
-    Async function.
+    title, body, body length, author karma, author rating, author followers, company
+    rating, rating, comments, views, bookmarks.
+
+    Async function.    
         :param link: url to article
         :param year_up_limit: posts younger, that year_up_limit, will be ignored
+        :param author_memoization: distionary to memoization author features
         :return: dict described above
     """
     post = {
@@ -151,23 +156,30 @@ async def parse_article(link, year_up_limit = None):
 
         try:
             author = data.find(_find_tags['author']).text
-            author_page = await _safe_request(f'https://habrahabr.ru/users/{author}', session)
-            author_page_html = await author_page.text()
-            author_page_tree = document_fromstring(author_page_html)
-            author_showing = author_page_tree.xpath(_find_tags['author_karma_rating_followers'])
-            if len(author_showing) == 3:
-                post['author karma'] = _normalize_views_count(author_showing[0].text)
-                post['author rating'] = _normalize_views_count(author_showing[1].text)
-                post['author followers'] = _normalize_views_count(author_showing[2].text)
+            if author_memoization is not None and author in author_memoization:
+                post['author karma'] = author_memoization[author][0]
+                post['author rating'] = author_memoization[author][1]
+                post['author followers'] = author_memoization[author][2]
             else:
-                tmp = author_page_tree.find(_find_tags['author_readonly'])
-                if len(author_showing) == 0 and tmp is not None and tmp.text == 'read-only':
-                    logger.info(f'Author for {link} is "{author}", who read-only')
-                    post['author karma'] = 0
-                    post['author rating'] = 0
-                    post['author followers'] = 0
+                author_page = await _safe_request(f'https://habrahabr.ru/users/{author}', session)
+                author_page_html = await author_page.text()
+                author_page_tree = document_fromstring(author_page_html)
+                author_showing = author_page_tree.xpath(_find_tags['author_karma_rating_followers'])
+                if len(author_showing) == 3:
+                    post['author karma'] = _normalize_views_count(author_showing[0].text)
+                    post['author rating'] = _normalize_views_count(author_showing[1].text)
+                    post['author followers'] = _normalize_views_count(author_showing[2].text)
                 else:
-                    raise Exception("problem with tags of data showings")
+                    tmp = author_page_tree.find(_find_tags['author_readonly'])
+                    if len(author_showing) == 0 and tmp is not None and tmp.text == 'read-only':
+                        logger.info(f'Author for {link} is "{author}", who read-only')
+                        post['author karma'] = 0
+                        post['author rating'] = 0
+                        post['author followers'] = 0
+                    else:
+                        raise Exception("problem with tags of data showings")
+                if author_memoization is not None:
+                    author_memoization[author] = (post['author karma'], post['author rating'], post['author followers'])
         except Exception as e:
             logger.info(f"page {link}")
             logger.warn(f"error while parse author '{author}': {repr(e)}")

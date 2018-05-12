@@ -1,9 +1,10 @@
 import sqlite3
 import asyncio
 import re
+import pickle
+import pandas as pd
 from collections import Counter
 
-import pickle
 from . import logger
 from . import parser
 from . import utils
@@ -121,7 +122,7 @@ def _make_words_space(data, cutoff=2, max_size=5000):
     logger.info (f'Word space dimension: {len (wordsList)}')
     return wordsList
 
-def _vectorize_text(data, word_space):
+def vectorize_text(data, word_space):
     """
     Replace data post text by vector of words space.
     Vector consists of zeros and ones, where one mean, that
@@ -137,7 +138,7 @@ def _vectorize_text(data, word_space):
             vector[idx] = 1
     data['body'] = vector
 
-def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, disable_words_limit=False):
+def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_words_space_file, disable_words_limit=False):
     """
     Read all data from hub data file, transform each post data text
     to vector in word spaces and save result as new data file.
@@ -151,7 +152,7 @@ def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, disable_wor
     print('[2/3]')
     bar = utils.get_bar(len(all_data)).start()
     for index, post_data in enumerate(all_data):
-        _vectorize_text(post_data, words_space)
+        vectorize_text(post_data, words_space)
         bar.update(index)
     bar.finish()
 
@@ -167,3 +168,28 @@ def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, disable_wor
     finally:
         fout.close()
         bar.finish()
+
+    pickle.dump(words_space,open(path_to_words_space_file,'wb'))
+
+def load_words_space(words_space_file_path):
+    return pickle.load(open(words_space_file_path,'rb'))
+
+def cvt_db_to_DataFrames(path_to_db):
+    data = load_db(path_to_db)
+    return cvt_to_DataFrames(data)
+
+def cvt_to_DataFrames(data):
+    X = []
+    y = []
+    for d in data:
+        y.append(d['rating'])
+
+        row = []
+        for key in d.keys():
+            if key not in ['rating', 'body', 'title']:
+                row.append(d[key])
+        # TODO: vectorize title too and add to features
+        row += d['body']
+
+        X.append(row)
+    return pd.DataFrame(X), pd.DataFrame(y)

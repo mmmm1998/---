@@ -35,12 +35,12 @@ def append_to_db(data, path_to_file, open_stream = None):
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
-def save_hub_to_text_db(hub_name, path_to_file, year_filter=None):
+def save_hub_to_text_db(hub_name, path_to_file, year_up_limit=None):
     """
     Save all hub's posts to data file
         :param hub_name: name of hub
         :param path_to_file: path to loaded data file
-        :param year_filter: posts younger, that year_filter, will be ignored
+        :param year_up_limit: posts younger, that year_up_limit, will be ignored
     """
     init_db(path_to_file)
     print('[1/2]')

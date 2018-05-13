@@ -52,12 +52,10 @@ def _body2text(body):
 
 async def _safe_request(link, session):
     max_attempt = 10
-    attempt = 0
-    while attempt < max_attempt:
+    for attempt in range(max_attempt):
         page = await session.get(link, timeout=120)
-        attempt += 1
         if page.status == 200:
-            break
+            return page
         if page.status >= 500:
             logger.info(f"status for {link} is {page.status}, wait 1 second")
         else:

@@ -21,3 +21,8 @@ class HabrHubRatingRegressor:
         with open(file_path,'rb') as fin:
             self.estimator = pickle.load(fin)
             self.hub_name = pickle.load(fin)
+
+def load_model(file_path):
+    model = HabrHubRatingRegressor('')
+    model.load_from(file_path)
+    return model

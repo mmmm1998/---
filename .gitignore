@@ -1,2 +1,5 @@
 **/__pycache__
 *.sqlite3
+*.pickle
+*.log
+*.hubmodel

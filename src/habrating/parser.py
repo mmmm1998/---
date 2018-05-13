@@ -100,6 +100,7 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
     """
     post = {
         'title': None,
+        'year': None,
         'body': None, 
         'body length': None,
         'author karma': None, 
@@ -121,7 +122,7 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
             logger.warn("link error: "+repr(e))
             return None
 
-        if (year_up_limit):
+        try:
             datastr = data.find(_find_tags['post date']).text.lstrip(' ')
             is_writed_yesterday = 'вчера' in datastr
             is_writed_today = 'сегодня' in datastr
@@ -130,9 +131,15 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
                 year = datetime.datetime.now().year
             else:
                 year = int(datastr.split(' ')[2])
-            if year > year_up_limit:
-                logger.info(f"post {link} writed in {year} but limit is {year_up_limit}, so drop")
-                return None
+            post['year'] = year
+        except Exception as e:
+            logger.info(f"page {link}")
+            logger.warn(f"error while parse year: {repr(e)}")
+            post['year'] = None
+
+        if (year_up_limit is not None) and (year > year_up_limit):
+            logger.info(f"post {link} writed in {year} but limit is {year_up_limit}, so drop")
+            return None
 
         try:
             post['title'] = data.find(_find_tags['title']).text

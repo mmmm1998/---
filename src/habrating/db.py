@@ -45,7 +45,7 @@ def save_hub_to_db(hub_name, file_path, max_year=None):
     """
     print('[1/3]')
 
-    threads_count = 12 # Habr accepts n <= 24 connections
+    threads_count = 16 # Habr accepts n <= 24 connections
     init_db(file_path)
     urls = parser.get_all_hub_article_urls(hub_name)
 

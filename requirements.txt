@@ -1,5 +1,5 @@
 colour_runner
 aiohttp
-progressbar
+progressbar33
 pandas
 sklearn

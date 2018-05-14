@@ -21,17 +21,22 @@ class MainWindow (QMainWindow):
         
         uic.loadUi ("mainwindow.ui", self)
         
+        self.tab_widget.setCurrentIndex (0)
+        self.direct_dummy.hide ()
+        self.url_dummy.show ()
+        
         self.setWindowTitle ("Habrating")
-        self.resize (800, 600)
+        self.resize (self.sizeHint ())
         self.statusbar.showMessage ("Ready")
         
         self.predict_button.clicked.connect (self.on_predict_clicked)
+        self.tab_widget.currentChanged.connect (self.on_tab_switched)
         
     def get_int_from_field (self, field):
         text = field.text ()
         if len (text):
             return int (text)
-        return 0
+        return int (field.placeholderText ())
         
     def predict_url (self, url):
         """
@@ -57,23 +62,36 @@ class MainWindow (QMainWindow):
             url = self.url_field.text ()
             self.statusbar.showMessage ("I'm thinking, wait a minute...")
             score = 0
-            if url:
+            if self.tab_widget.currentIndex () == 0:
                 logger.info (f"predicting by url {url}")
                 score = self.predict_url (url)
             else:
                 logger.info (f"predicting by direct feed")
                 data = {}
                 data['title'] = self.title_field.text ()
+                data['title length'] = len (data['title'])
                 data['body'] = self.text_field.toPlainText ()
-                data['views'] = self.get_int_from_field (self.views_edit)
-                data['comments'] = self.get_int_from_field (self.comments_edit)
-                data['bookmarks'] = self.get_int_from_field (self.bmarks_edit)
+                data['body length'] = len (data['body'])
+                # Do we need to zero out these fields?
+                # data['views'] = 0
+                # data['comments'] = 0
+                # data['bookmarks'] = 0
                 data['author rating'] = self.get_int_from_field (self.arating_edit)
                 data['author karma'] = self.get_int_from_field (self.akarma_edit)
                 data['author followers'] = self.get_int_from_field (self.asubs_edit)
+                data['year'] = self.get_int_from_field (self.year_edit)
                 score = self.predict_direct (data)
             self.result_field.setText (f"You will get {score} point(s)")
             self.statusbar.showMessage ("Done!")
         except ValueError:
             self.statusbar.showMessage ("Wrong input! Only integers are allowed in additional fields")
+            
+    def on_tab_switched (self, idx):
+        if idx == 0:
+            self.direct_dummy.hide ()
+            self.url_dummy.show ()
+        else:
+            self.url_dummy.hide ()
+            self.direct_dummy.show ()
+        self.updateGeometry ()
             

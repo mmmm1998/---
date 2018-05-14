@@ -12,12 +12,17 @@ class HabrHubRatingRegressor:
     def predict(self, X):
         return self.estimator.predict(X)
 
-    def save_to(self, file_path):
+    def save_to(self, file_path = None):
+        if file_path is None:
+            file_path = self.hub_name+'.hubmodel'
         with open(file_path,'wb') as fout:
             pickle.dump(self.estimator,fout)
             pickle.dump(self.hub_name,fout)
 
-    def load_from(self, file_path):
+    def load_from(self, file_path = None):
+        if file_path is None:
+           file_path = self.hub_name+'.hubmodel'
+        print(file_path)
         with open(file_path,'rb') as fin:
             self.estimator = pickle.load(fin)
             self.hub_name = pickle.load(fin)

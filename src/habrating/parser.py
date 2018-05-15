@@ -292,13 +292,12 @@ async def get_articles_from_page(page_url):
         else:
             return []
 
-def get_all_hub_article_urls(hub):
+def get_all_hub_article_urls(hub, threads_count=20):
     """
     For the specified hub return all articles belonging to this hub.
         :param hub: name of the hub
         :return: list of hrefs to articles
     """
-    threads_count = 20 # Habr accept 24 and less connections?
     baseurl = 'https://habrahabr.ru/hub/'+hub+'/all/'
     articles = []
 

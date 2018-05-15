@@ -3,7 +3,10 @@ import asyncio
 import re
 import pickle
 import pandas as pd
+import numpy as np
 from collections import Counter
+from sklearn.feature_extraction.text import TfidfVectorizer
+import scipy.sparse as sp
 
 from . import logger
 from . import parser
@@ -36,7 +39,7 @@ def append_to_db(data, path_to_file, open_stream = None):
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
-def save_hub_to_db(hub_name, file_path, max_year=None):
+def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16):
     """
     Save all hub's posts to data file
         :param hub_name: name of hub
@@ -45,9 +48,10 @@ def save_hub_to_db(hub_name, file_path, max_year=None):
     """
     print('[1/3]')
 
-    threads_count = 16 # Habr accepts n <= 24 connections
-    init_db(file_path)
-    urls = parser.get_all_hub_article_urls(hub_name)
+    if threads_count is not None:
+        urls = parser.get_all_hub_article_urls(hub_name, threads_count=threads_count)
+    else:
+        urls = parser.get_all_hub_article_urls(hub_name)
 
     ioloop = asyncio.get_event_loop()
     articles = []
@@ -94,7 +98,7 @@ def load_db(path_to_file):
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
-def _make_words_space(data, cutoff=2, max_size=5000):
+def _fit_text_transformer(data, cutoff=2, max_size=3000):
     """
     Create word space from parsed article data
         :param data: list of article texts
@@ -102,41 +106,11 @@ def _make_words_space(data, cutoff=2, max_size=5000):
         :param max_size: maximal dimension of word space. If equals -1, dimension unlimied
         :return: dict mapping word to its index in word space vector
     """
-    logger.info ("Preparing to make word space")
-    counter = Counter ()
-    bar = utils.get_bar(len(data)).start()
-    for index, post in enumerate(data):
-        words = re.split('[^a-z|а-я|A-Z|А-Я]', post['body'])
-        words = map(str.lower, filter(None, words))
-        counter += Counter(words)
-        bar.update(index)
-    bar.finish()
-    wordsList = {}
-    idx = 0
-    words = counter.most_common(max_size) if max_size != -1 else counter.most_common()
-    for word in words:
-        if word[1] <= cutoff:
-            break
-        wordsList[word[0]] = idx
-        idx += 1
-    logger.info (f'Word space dimension: {len (wordsList)}')
-    return wordsList
-
-def vectorize_text(data, word_space):
-    """
-    Replace data post text by vector of words space.
-    Vector consists of zeros and ones, where one mean, that
-    words in words space with this index contains in post text
-        :param data: parsed post data
-        :param words_space: result of _make_words_space function
-    """
-    vector = [0] * len(word_space)
-    words = re.split('[^a-z|а-я|A-Z|А-Я]', data['body'])
-    for word in map(str.lower,words):
-        idx = word_space.get(word)
-        if idx != None:
-            vector[idx] = 1
-    data['body'] = vector
+    text = [post['body'] for post in data]
+    text += [post['title'] for post in data]
+    transformer = TfidfVectorizer(max_features=max_size)
+    transformer.fit(text)
+    return transformer
 
 def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_words_space_file, disable_words_limit=False):
     """
@@ -147,29 +121,23 @@ def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_wor
 	    :param disable_words_limit: if True, then disable limit on words space
     """
     all_data = load_db(path_to_text_file)
-    print('[1/3]')
-    words_space = _make_words_space(all_data, max_size =-1) if disable_words_limit else _make_words_space(all_data)
-    print('[2/3]')
+    print('[1/2]')
+    print('Long sklearn operation without any verbose output')
+    if disable_words_limit:
+        transformer = _fit_text_transformer(all_data, max_size=None)
+    else:
+	    transformer = _fit_text_transformer(all_data)
+    print('[2/2]')
     bar = utils.get_bar(len(all_data)).start()
-    for index, post_data in enumerate(all_data):
-        vectorize_text(post_data, words_space)
-        bar.update(index)
+    with open(path_to_vectorize_file,'wb') as fout:
+        for index, post in enumerate(all_data):
+            for key in ['body', 'title']:
+                post[key] = list(transformer.transform([post[key]]).toarray()[0])
+            append_to_db(post, path_to_vectorize_file, fout)
+            bar.update(index)
     bar.finish()
 
-    print('[3/3]')
-    bar.start()
-
-    init_db(path_to_vectorize_file)
-    fout = open(path_to_vectorize_file,'wb')
-    try:
-        for index, parsed_date in enumerate(all_data):
-            append_to_db(parsed_date, path_to_vectorize_file, fout)
-            bar.update(index)
-    finally:
-        fout.close()
-        bar.finish()
-
-    pickle.dump(words_space,open(path_to_words_space_file,'wb'))
+    pickle.dump(transformer,open(path_to_words_space_file,'wb'))
 
 def load_words_space(words_space_file_path):
     return pickle.load(open(words_space_file_path,'rb'))
@@ -181,15 +149,19 @@ def cvt_db_to_DataFrames(path_to_db):
 def cvt_to_DataFrames(data):
     X = []
     y = []
-    for d in data:
+    bar = utils.get_bar(len(data)).start()
+    for index, d in enumerate(data):
         y.append(d['rating'])
 
         row = []
         for key in d.keys():
             if key not in ['rating', 'body', 'title']:
                 row.append(d[key])
-        # TODO: vectorize title too and add to features
-        row += d['body']
-
+        print(d['body'], d['title'])
+        print()
+        row = sp.vstack([row, d['body'], d['title']])
+        print(row)
         X.append(row)
+        bar.update(index)
+
     return pd.DataFrame(X), pd.DataFrame(y)

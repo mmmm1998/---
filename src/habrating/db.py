@@ -2,11 +2,11 @@ import sqlite3
 import asyncio
 import re
 import pickle
+import progressbar
 import pandas as pd
 import numpy as np
 from collections import Counter
-from sklearn.feature_extraction.text import TfidfVectorizer
-import scipy.sparse as sp
+from sklearn.feature_extraction.text import CountVectorizer
 
 from . import logger
 from . import parser
@@ -88,17 +88,29 @@ def load_db(path_to_file):
     try:
         with open(path_to_file,'rb') as fin:
             data = []
+            loaded = 0
+            bar = progressbar.ProgressBar(
+                widgets=
+                    [
+                    '[Loading db]',
+                    progressbar.Counter(format='[loadede %s entries]')
+                    ],
+                maxval=progressbar.UnknownLength)
+            bar.start()
             while True:
                 try:
                     data.append(pickle.load(fin))
+                    loaded += 1
+                    bar.update(loaded)
                 except EOFError:
                     break 
+            bar.finish()
             logger.info(f'load {len(data)} posts data')
             return data
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
-def _fit_text_transformer(data, cutoff=2, max_size=3000):
+def _fit_text_transformers(data, cutoff=2, text_max_size=5000, title_max_size=500):
     """
     Create word space from parsed article data
         :param data: list of article texts
@@ -106,13 +118,15 @@ def _fit_text_transformer(data, cutoff=2, max_size=3000):
         :param max_size: maximal dimension of word space. If equals -1, dimension unlimied
         :return: dict mapping word to its index in word space vector
     """
-    text = [post['body'] for post in data]
-    text += [post['title'] for post in data]
-    transformer = TfidfVectorizer(max_features=max_size)
-    transformer.fit(text)
-    return transformer
+    textes = [post['body'] for post in data]
+    titles = [post['title'] for post in data]
+    body_transformer = CountVectorizer(max_features=text_max_size, dtype=np.int32)
+    title_transformer = CountVectorizer(max_features=title_max_size, dtype=np.int32)
+    body_transformer.fit(textes)
+    title_transformer.fit(titles)
+    return body_transformer, title_transformer
 
-def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_words_space_file, disable_words_limit=False):
+def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_words_space_file):
     """
     Read all data from hub data file, transform each post data text
     to vector in word spaces and save result as new data file.
@@ -123,24 +137,29 @@ def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_wor
     all_data = load_db(path_to_text_file)
     print('[1/2]')
     print('Long sklearn operation without any verbose output')
-    if disable_words_limit:
-        transformer = _fit_text_transformer(all_data, max_size=None)
-    else:
-	    transformer = _fit_text_transformer(all_data)
+    body_vectorizer, title_vectorizer = _fit_text_transformers(all_data)
     print('[2/2]')
     bar = utils.get_bar(len(all_data)).start()
     with open(path_to_vectorize_file,'wb') as fout:
         for index, post in enumerate(all_data):
-            for key in ['body', 'title']:
-                post[key] = list(transformer.transform([post[key]]).toarray()[0])
+            post['body'] = list(body_vectorizer.transform([post['body']]).toarray()[0])
+            post['title'] = list(title_vectorizer.transform([post['title']]).toarray()[0])
             append_to_db(post, path_to_vectorize_file, fout)
             bar.update(index)
     bar.finish()
 
-    pickle.dump(transformer,open(path_to_words_space_file,'wb'))
+    save_hub_vectorizers(path_to_words_space_file, body_vectorizer, title_vectorizer)
+
+def save_hub_vectorizers(file_path, body_vectorizer, title_vectorizer):
+    with open(file_path,'wb') as fout:
+        pickle.dump(body_vectorizer,fout)
+        pickle.dump(title_vectorizer,fout)
 
 def load_words_space(words_space_file_path):
-    return pickle.load(open(words_space_file_path,'rb'))
+    with open(words_space_file_path,'rb') as fin:
+        body_vectorizer = pickle.load(fin)
+        title_vectorizer = pickle.load(fin)
+    return body_vectorizer, title_vectorizer
 
 def cvt_db_to_DataFrames(path_to_db):
     data = load_db(path_to_db)
@@ -157,11 +176,9 @@ def cvt_to_DataFrames(data):
         for key in d.keys():
             if key not in ['rating', 'body', 'title']:
                 row.append(d[key])
-        print(d['body'], d['title'])
-        print()
-        row = sp.vstack([row, d['body'], d['title']])
-        print(row)
+        row += d['body']
+        row += d['title']
         X.append(row)
         bar.update(index)
-
-    return pd.DataFrame(X), pd.DataFrame(y)
+    bar.finish()
+    return pd.DataFrame(X, dtype=np.int32), pd.DataFrame(y, dtype=np.int32)

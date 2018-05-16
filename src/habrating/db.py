@@ -24,7 +24,7 @@ def init_db(path_to_file):
     except Exception as e:
         logger.warn("error: "+repr(e))
 
-def append_to_db(data, path_to_file, open_stream = None):
+def write_db(data, path_to_file, open_stream = None):
     """
     Insert parsed post data into data file
         :param data: parsed post data
@@ -74,7 +74,7 @@ def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16):
     fout = open(file_path,'wb')
     try:
         for index, parsed_date in enumerate(articles):
-            append_to_db(parsed_date, file_path, fout)
+            write_db(parsed_date, file_path, fout)
             bar.update(index)
     finally:
         fout.close()
@@ -126,6 +126,10 @@ def _fit_text_transformers(data, cutoff=2, text_max_size=5000, title_max_size=50
     title_transformer.fit(titles)
     return body_transformer, title_transformer
 
+def vectorize_post(post, body_vectorizer, title_vectorizer):
+    post['body'] = list(body_vectorizer.transform([post['body']]).toarray()[0])
+    post['title'] = list(title_vectorizer.transform([post['title']]).toarray()[0])
+
 def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_words_space_file):
     """
     Read all data from hub data file, transform each post data text
@@ -142,9 +146,8 @@ def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_wor
     bar = utils.get_bar(len(all_data)).start()
     with open(path_to_vectorize_file,'wb') as fout:
         for index, post in enumerate(all_data):
-            post['body'] = list(body_vectorizer.transform([post['body']]).toarray()[0])
-            post['title'] = list(title_vectorizer.transform([post['title']]).toarray()[0])
-            append_to_db(post, path_to_vectorize_file, fout)
+            vectorize_post(post, body_vectorizer, title_vectorizer)
+            write_db(post, path_to_vectorize_file, fout)
             bar.update(index)
     bar.finish()
 

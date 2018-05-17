@@ -1,4 +1,5 @@
 import sys
+import os
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5 import uic
@@ -19,7 +20,8 @@ class MainWindow (QMainWindow):
     def __init__ (self):
         super (MainWindow, self).__init__ ()
         
-        uic.loadUi ("mainwindow.ui", self)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        uic.loadUi (dir_path+"/mainwindow.ui", self)
         
         self.tab_widget.setCurrentIndex (0)
         self.direct_dummy.hide ()

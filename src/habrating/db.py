@@ -39,14 +39,15 @@ def write_db(data, path_to_file, open_stream = None):
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
-def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16):
+def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16, operations=3,
+        start_index=1):
     """
     Save all hub's posts to data file
         :param hub_name: name of hub
         :param file_path: path to loaded data file
         :param max_year: posts younger, that max_year, will be ignored
     """
-    print('[1/3]')
+    print(f'[{start_index}/{operations}]')
 
     if threads_count is not None:
         urls = parser.get_all_hub_article_urls(hub_name, threads_count=threads_count)
@@ -57,7 +58,7 @@ def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16):
     articles = []
     memo = {}
 
-    print('[2/3]')
+    print(f'[{start_index+1}/{operations}]')
     bar = utils.get_bar(len(urls)).start()
     for index in range(0, len(urls), threads_count):
         tasks = []
@@ -69,7 +70,7 @@ def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16):
     bar.finish()
     logger.info(f"parsed {len(articles)} articles from hub '{hub_name}'")
 
-    print('[3/3]')
+    print(f'[{start_index+2}/{operations}]')
     bar = utils.get_bar(len(articles)).start()
     fout = open(file_path,'wb')
     try:
@@ -130,7 +131,8 @@ def vectorize_post(post, body_vectorizer, title_vectorizer):
     post['body'] = list(body_vectorizer.transform([post['body']]).toarray()[0])
     post['title'] = list(title_vectorizer.transform([post['title']]).toarray()[0])
 
-def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_words_space_file):
+def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_words_space_file,
+        operations=2, start_index=1):
     """
     Read all data from hub data file, transform each post data text
     to vector in word spaces and save result as new data file.
@@ -139,10 +141,10 @@ def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_wor
 	    :param disable_words_limit: if True, then disable limit on words space
     """
     all_data = load_db(path_to_text_file)
-    print('[1/2]')
+    print(f'[{start_index}/{operations}]')
     print('Long sklearn operation without any verbose output')
     body_vectorizer, title_vectorizer = _fit_text_transformers(all_data)
-    print('[2/2]')
+    print(f'[{start_index+1}/{operations}]')
     bar = utils.get_bar(len(all_data)).start()
     with open(path_to_vectorize_file,'wb') as fout:
         for index, post in enumerate(all_data):

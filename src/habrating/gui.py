@@ -62,12 +62,10 @@ class MainWindow (QMainWindow):
             :param data: dict in default format (with 'title', 'body', etc. fields)
             :return: estimate rating
         """
-        X, _ = db.cvt_to_DataFrames ([data])
-        print (X)
-        return self.model.predict (X)[0]
+        return self.model.predict_by_posts ([data])[0]
         
     def on_predict_clicked (self):
-        try:
+        #try:
             url = self.url_field.text ()
             self.statusbar.showMessage ("I'm thinking, wait a minute...")
             score = 0
@@ -78,7 +76,7 @@ class MainWindow (QMainWindow):
                 logger.info (f"predicting by direct feed")
                 data = {}
                 data['title'] = self.title_field.text ()
-                data['title length'] = len (data['title'])
+                # data['title length'] = len (data['title']) # Not used now
                 data['body'] = self.text_field.toPlainText ()
                 data['body length'] = len (data['body'])
                 # Do we need to zero out these fields?
@@ -95,8 +93,8 @@ class MainWindow (QMainWindow):
                 score = self.predict_direct (data)
             self.result_field.setText (f"You will get {int (round (score))} point(s)")
             self.statusbar.showMessage ("Done!")
-        except ValueError:
-            self.statusbar.showMessage ("Wrong input! Only integers are allowed in additional fields")
+        #except ValueError:
+        #    self.statusbar.showMessage ("Wrong input! Only integers are allowed in additional fields")
             
     def change_tab_size (self, new_size):
         # Update widgets layout

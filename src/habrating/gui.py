@@ -1,10 +1,12 @@
 import sys
 import os
 from PyQt5.QtCore import Qt, QCoreApplication
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PyQt5 import uic
 
 from . import logger
+from . import model
+from . import db
 
 def run_gui ():
     """
@@ -36,6 +38,10 @@ class MainWindow (QMainWindow):
         self.predict_button.clicked.connect (self.on_predict_clicked)
         self.tab_widget.currentChanged.connect (self.on_tab_switched)
         
+        filename = QFileDialog.getOpenFileName (self, "Select model for prediction", "", "Model files (*.hubmodel)")
+        logger.info ("Selected model file " + filename[0])
+        self.model = model.load_model (filename[0])
+        
     def get_int_from_field (self, field):
         text = field.text ()
         if len (text):
@@ -48,8 +54,7 @@ class MainWindow (QMainWindow):
             :param url: self-descriptive
             :return: estimate rating
         """
-        # TODO: insert actual model here
-        return hash (url) % 350
+        return self.model.predict_by_urls ([url])[0]
     
     def predict_direct (self, data):
         """
@@ -57,9 +62,9 @@ class MainWindow (QMainWindow):
             :param data: dict in default format (with 'title', 'body', etc. fields)
             :return: estimate rating
         """
-        # TODO: insert actual model here
-        # By the way, what's the accuracy of this method?
-        return hash (data['title'] + data['body']) % 350
+        X, _ = db.cvt_to_DataFrames ([data])
+        print (X)
+        return self.model.predict (X)[0]
         
     def on_predict_clicked (self):
         try:
@@ -77,15 +82,18 @@ class MainWindow (QMainWindow):
                 data['body'] = self.text_field.toPlainText ()
                 data['body length'] = len (data['body'])
                 # Do we need to zero out these fields?
-                # data['views'] = 0
-                # data['comments'] = 0
-                # data['bookmarks'] = 0
+                data['views'] = 0
+                data['comments'] = 0
+                data['bookmarks'] = 0
+                data['company rating'] = 0
+                data['rating'] = 0
                 data['author rating'] = self.get_int_from_field (self.arating_edit)
                 data['author karma'] = self.get_int_from_field (self.akarma_edit)
                 data['author followers'] = self.get_int_from_field (self.asubs_edit)
                 data['year'] = self.get_int_from_field (self.year_edit)
+                print (data.keys ())
                 score = self.predict_direct (data)
-            self.result_field.setText (f"You will get {score} point(s)")
+            self.result_field.setText (f"You will get {int (round (score))} point(s)")
             self.statusbar.showMessage ("Done!")
         except ValueError:
             self.statusbar.showMessage ("Wrong input! Only integers are allowed in additional fields")

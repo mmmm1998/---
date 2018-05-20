@@ -178,7 +178,7 @@ def cvt_to_DataFrames(data):
         y.append(d['rating'])
 
         row = []
-        for key in d.keys():
+        for key in sorted(d.keys()):
             if key not in ['rating', 'body', 'title']:
                 row.append(d[key])
         row += d['body']

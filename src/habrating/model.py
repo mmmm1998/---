@@ -20,6 +20,9 @@ class HabrHubRatingRegressor:
     def predict_by_urls(self, urls):
         loop = asyncio.get_event_loop()
         posts = list(map(lambda url: loop.run_until_complete(parser.parse_article(url)), urls))
+        return self.predict_by_posts(posts)
+
+    def predict_by_posts(self, posts):
         for post in posts:
             db.vectorize_post(post, self.text_transformer, self.title_transformer)
         X, _ = db.cvt_to_DataFrames(posts)

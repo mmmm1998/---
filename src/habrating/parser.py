@@ -52,12 +52,10 @@ def _body2text(body):
 
 async def _safe_request(link, session):
     max_attempt = 10
-    attempt = 0
-    while attempt < max_attempt:
+    for attempt in range(max_attempt):
         page = await session.get(link, timeout=120)
-        attempt += 1
         if page.status == 200:
-            break
+            return page
         if page.status >= 500:
             logger.info(f"status for {link} is {page.status}, wait 1 second")
         else:
@@ -102,6 +100,7 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
     """
     post = {
         'title': None,
+        'year': None,
         'body': None, 
         'body length': None,
         'author karma': None, 
@@ -123,7 +122,7 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
             logger.warn("link error: "+repr(e))
             return None
 
-        if (year_up_limit):
+        try:
             datastr = data.find(_find_tags['post date']).text.lstrip(' ')
             is_writed_yesterday = 'вчера' in datastr
             is_writed_today = 'сегодня' in datastr
@@ -132,9 +131,15 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
                 year = datetime.datetime.now().year
             else:
                 year = int(datastr.split(' ')[2])
-            if year > year_up_limit:
-                logger.info(f"post {link} writed in {year} but limit is {year_up_limit}, so drop")
-                return None
+            post['year'] = year
+        except Exception as e:
+            logger.info(f"page {link}")
+            logger.warn(f"error while parse year: {repr(e)}")
+            post['year'] = None
+
+        if (year_up_limit is not None) and (year > year_up_limit):
+            logger.info(f"post {link} writed in {year} but limit is {year_up_limit}, so drop")
+            return None
 
         try:
             post['title'] = data.find(_find_tags['title']).text
@@ -287,13 +292,12 @@ async def get_articles_from_page(page_url):
         else:
             return []
 
-def get_all_hub_article_urls(hub):
+def get_all_hub_article_urls(hub, threads_count=20):
     """
     For the specified hub return all articles belonging to this hub.
         :param hub: name of the hub
         :return: list of hrefs to articles
     """
-    threads_count = 20 # Habr accept 24 and less connections?
     baseurl = 'https://habrahabr.ru/hub/'+hub+'/all/'
     articles = []
 

@@ -2,8 +2,11 @@ import sqlite3
 import asyncio
 import re
 import pickle
+import progressbar
 import pandas as pd
+import numpy as np
 from collections import Counter
+from sklearn.feature_extraction.text import CountVectorizer
 
 from . import logger
 from . import parser
@@ -21,7 +24,7 @@ def init_db(path_to_file):
     except Exception as e:
         logger.warn("error: "+repr(e))
 
-def append_to_db(data, path_to_file, open_stream = None):
+def write_db(data, path_to_file, open_stream = None):
     """
     Insert parsed post data into data file
         :param data: parsed post data
@@ -36,24 +39,26 @@ def append_to_db(data, path_to_file, open_stream = None):
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
-def save_hub_to_db(hub_name, file_path, max_year=None):
+def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16, operations=3,
+        start_index=1):
     """
     Save all hub's posts to data file
         :param hub_name: name of hub
         :param file_path: path to loaded data file
         :param max_year: posts younger, that max_year, will be ignored
     """
-    print('[1/3]')
+    print(f'[{start_index}/{operations}]')
 
-    threads_count = 12 # Habr accepts n <= 24 connections
-    init_db(file_path)
-    urls = parser.get_all_hub_article_urls(hub_name)
+    if threads_count is not None:
+        urls = parser.get_all_hub_article_urls(hub_name, threads_count=threads_count)
+    else:
+        urls = parser.get_all_hub_article_urls(hub_name)
 
     ioloop = asyncio.get_event_loop()
     articles = []
     memo = {}
 
-    print('[2/3]')
+    print(f'[{start_index+1}/{operations}]')
     bar = utils.get_bar(len(urls)).start()
     for index in range(0, len(urls), threads_count):
         tasks = []
@@ -65,12 +70,12 @@ def save_hub_to_db(hub_name, file_path, max_year=None):
     bar.finish()
     logger.info(f"parsed {len(articles)} articles from hub '{hub_name}'")
 
-    print('[3/3]')
+    print(f'[{start_index+2}/{operations}]')
     bar = utils.get_bar(len(articles)).start()
     fout = open(file_path,'wb')
     try:
         for index, parsed_date in enumerate(articles):
-            append_to_db(parsed_date, file_path, fout)
+            write_db(parsed_date, file_path, fout)
             bar.update(index)
     finally:
         fout.close()
@@ -84,17 +89,29 @@ def load_db(path_to_file):
     try:
         with open(path_to_file,'rb') as fin:
             data = []
+            loaded = 0
+            bar = progressbar.ProgressBar(
+                widgets=
+                    [
+                    '[Loading db]',
+                    progressbar.Counter(format='[loadede %s entries]')
+                    ],
+                maxval=progressbar.UnknownLength)
+            bar.start()
             while True:
                 try:
                     data.append(pickle.load(fin))
+                    loaded += 1
+                    bar.update(loaded)
                 except EOFError:
                     break 
+            bar.finish()
             logger.info(f'load {len(data)} posts data')
             return data
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
-def _make_words_space(data, cutoff=2, max_size=5000):
+def _fit_text_transformers(data, cutoff=2, text_max_size=5000, title_max_size=500):
     """
     Create word space from parsed article data
         :param data: list of article texts
@@ -102,43 +119,20 @@ def _make_words_space(data, cutoff=2, max_size=5000):
         :param max_size: maximal dimension of word space. If equals -1, dimension unlimied
         :return: dict mapping word to its index in word space vector
     """
-    logger.info ("Preparing to make word space")
-    counter = Counter ()
-    bar = utils.get_bar(len(data)).start()
-    for index, post in enumerate(data):
-        words = re.split('[^a-z|а-я|A-Z|А-Я]', post['body'])
-        words = map(str.lower, filter(None, words))
-        counter += Counter(words)
-        bar.update(index)
-    bar.finish()
-    wordsList = {}
-    idx = 0
-    words = counter.most_common(max_size) if max_size != -1 else counter.most_common()
-    for word in words:
-        if word[1] <= cutoff:
-            break
-        wordsList[word[0]] = idx
-        idx += 1
-    logger.info (f'Word space dimension: {len (wordsList)}')
-    return wordsList
+    textes = [post['body'] for post in data]
+    titles = [post['title'] for post in data]
+    body_transformer = CountVectorizer(max_features=text_max_size, dtype=np.int32)
+    title_transformer = CountVectorizer(max_features=title_max_size, dtype=np.int32)
+    body_transformer.fit(textes)
+    title_transformer.fit(titles)
+    return body_transformer, title_transformer
 
-def vectorize_text(data, word_space):
-    """
-    Replace data post text by vector of words space.
-    Vector consists of zeros and ones, where one mean, that
-    words in words space with this index contains in post text
-        :param data: parsed post data
-        :param words_space: result of _make_words_space function
-    """
-    vector = [0] * len(word_space)
-    words = re.split('[^a-z|а-я|A-Z|А-Я]', data['body'])
-    for word in map(str.lower,words):
-        idx = word_space.get(word)
-        if idx != None:
-            vector[idx] = 1
-    data['body'] = vector
+def vectorize_post(post, body_vectorizer, title_vectorizer):
+    post['body'] = list(body_vectorizer.transform([post['body']]).toarray()[0])
+    post['title'] = list(title_vectorizer.transform([post['title']]).toarray()[0])
 
-def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_words_space_file, disable_words_limit=False):
+def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_words_space_file,
+        operations=2, start_index=1):
     """
     Read all data from hub data file, transform each post data text
     to vector in word spaces and save result as new data file.
@@ -147,32 +141,30 @@ def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_wor
 	    :param disable_words_limit: if True, then disable limit on words space
     """
     all_data = load_db(path_to_text_file)
-    print('[1/3]')
-    words_space = _make_words_space(all_data, max_size =-1) if disable_words_limit else _make_words_space(all_data)
-    print('[2/3]')
+    print(f'[{start_index}/{operations}]')
+    print('Long sklearn operation without any verbose output')
+    body_vectorizer, title_vectorizer = _fit_text_transformers(all_data)
+    print(f'[{start_index+1}/{operations}]')
     bar = utils.get_bar(len(all_data)).start()
-    for index, post_data in enumerate(all_data):
-        vectorize_text(post_data, words_space)
-        bar.update(index)
+    with open(path_to_vectorize_file,'wb') as fout:
+        for index, post in enumerate(all_data):
+            vectorize_post(post, body_vectorizer, title_vectorizer)
+            write_db(post, path_to_vectorize_file, fout)
+            bar.update(index)
     bar.finish()
 
-    print('[3/3]')
-    bar.start()
+    save_hub_vectorizers(path_to_words_space_file, body_vectorizer, title_vectorizer)
 
-    init_db(path_to_vectorize_file)
-    fout = open(path_to_vectorize_file,'wb')
-    try:
-        for index, parsed_date in enumerate(all_data):
-            append_to_db(parsed_date, path_to_vectorize_file, fout)
-            bar.update(index)
-    finally:
-        fout.close()
-        bar.finish()
-
-    pickle.dump(words_space,open(path_to_words_space_file,'wb'))
+def save_hub_vectorizers(file_path, body_vectorizer, title_vectorizer):
+    with open(file_path,'wb') as fout:
+        pickle.dump(body_vectorizer,fout)
+        pickle.dump(title_vectorizer,fout)
 
 def load_words_space(words_space_file_path):
-    return pickle.load(open(words_space_file_path,'rb'))
+    with open(words_space_file_path,'rb') as fin:
+        body_vectorizer = pickle.load(fin)
+        title_vectorizer = pickle.load(fin)
+    return body_vectorizer, title_vectorizer
 
 def cvt_db_to_DataFrames(path_to_db):
     data = load_db(path_to_db)
@@ -181,15 +173,17 @@ def cvt_db_to_DataFrames(path_to_db):
 def cvt_to_DataFrames(data):
     X = []
     y = []
-    for d in data:
+    bar = utils.get_bar(len(data)).start()
+    for index, d in enumerate(data):
         y.append(d['rating'])
 
         row = []
         for key in d.keys():
             if key not in ['rating', 'body', 'title']:
                 row.append(d[key])
-        # TODO: vectorize title too and add to features
         row += d['body']
-
+        row += d['title']
         X.append(row)
-    return pd.DataFrame(X), pd.DataFrame(y)
+        bar.update(index)
+    bar.finish()
+    return pd.DataFrame(X, dtype=np.int32), pd.DataFrame(y, dtype=np.int32)

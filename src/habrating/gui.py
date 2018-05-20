@@ -1,6 +1,6 @@
 import sys
 import os
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5 import uic
 
@@ -26,9 +26,11 @@ class MainWindow (QMainWindow):
         self.tab_widget.setCurrentIndex (0)
         self.direct_dummy.hide ()
         self.url_dummy.show ()
+        self.direct_tab_size = None
+        self.url_tab_size = None
         
         self.setWindowTitle ("Habrating")
-        self.resize (self.sizeHint ())
+        self.resize (self.minimumSizeHint ())
         self.statusbar.showMessage ("Ready")
         
         self.predict_button.clicked.connect (self.on_predict_clicked)
@@ -88,12 +90,27 @@ class MainWindow (QMainWindow):
         except ValueError:
             self.statusbar.showMessage ("Wrong input! Only integers are allowed in additional fields")
             
+    def change_tab_size (self, new_size):
+        # Update widgets layout
+        self.updateGeometry ()
+        QCoreApplication.sendPostedEvents ()
+        QCoreApplication.processEvents ()
+        self.setMinimumSize (self.minimumSizeHint ())
+        # Resize to stored size of a new tab
+        self.resize (new_size or self.minimumSizeHint ())
+            
     def on_tab_switched (self, idx):
         if idx == 0:
+            # Store size of tab that is about to be closed
+            self.direct_tab_size = self.size ()
+            # Change widgets visibility and resize to previosly stored size
             self.direct_dummy.hide ()
             self.url_dummy.show ()
+            self.change_tab_size (self.url_tab_size)
         else:
+            # Store size of tab that is about to be closed
+            self.url_tab_size = self.size ()
+            # Change widgets visibility and resize to previosly stored size
             self.url_dummy.hide ()
             self.direct_dummy.show ()
-        self.updateGeometry ()
-            
+            self.change_tab_size (self.direct_tab_size)

@@ -121,15 +121,15 @@ def _fit_text_transformers(data, cutoff=2, text_max_size=5000, title_max_size=50
     """
     textes = [post['body'] for post in data]
     titles = [post['title'] for post in data]
-    body_transformer = CountVectorizer(max_features=text_max_size, dtype=np.int32)
-    title_transformer = CountVectorizer(max_features=title_max_size, dtype=np.int32)
+    body_transformer = CountVectorizer(max_features=text_max_size, dtype=np.int8)
+    title_transformer = CountVectorizer(max_features=title_max_size, dtype=np.int8)
     body_transformer.fit(textes)
     title_transformer.fit(titles)
     return body_transformer, title_transformer
 
 def vectorize_post(post, body_vectorizer, title_vectorizer):
-    post['body'] = list(body_vectorizer.transform([post['body']]).toarray()[0])
-    post['title'] = list(title_vectorizer.transform([post['title']]).toarray()[0])
+    post['body'] = body_vectorizer.transform([post['body']]).toarray()[0]
+    post['title'] = title_vectorizer.transform([post['title']]).toarray()[0]
 
 def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_words_space_file,
         operations=2, start_index=1):
@@ -171,19 +171,7 @@ def cvt_db_to_DataFrames(path_to_db):
     return cvt_to_DataFrames(data)
 
 def cvt_to_DataFrames(data):
-    X = []
-    y = []
-    bar = utils.get_bar(len(data)).start()
-    for index, d in enumerate(data):
-        y.append(d['rating'])
-
-        row = []
-        for key in sorted(d.keys()):
-            if key not in ['rating', 'body', 'title']:
-                row.append(d[key])
-        row += d['body']
-        row += d['title']
-        X.append(row)
-        bar.update(index)
-    bar.finish()
-    return pd.DataFrame(X, dtype=np.int32), np.array(y, dtype=np.int32)
+    feature_keys = [key for key in data[0].keys() if key not in ['rating', 'body', 'title']]
+    X = [np.concatenate([d['body'], d['title'], [d[key] for key in feature_keys]]) for d in data]
+    y = [d['rating'] for d in data]
+    return np.asarray(X, dtype=np.int32), np.asarray(y,dtype=np.int32)

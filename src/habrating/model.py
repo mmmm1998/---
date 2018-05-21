@@ -57,9 +57,9 @@ def load_model(file_path):
     model.load_from(file_path)
     return model
 
-def model_from_hub(hub_name):
+def model_from_hub(hub_name, threads_count=16):
 	text_db_path = f"{hub_name}.pickle"
-	db.save_hub_to_db(hub_name, text_db_path, start_index=1, operations=7)
+	db.save_hub_to_db(hub_name, text_db_path, start_index=1, operations=7, threads_count=threads_count)
 	vec_db_path = f"vec_{hub_name}.pickle"
 	space_db_path = f"space_{hub_name}.pickle"
 	db.cvt_text_db_to_vec_db(text_db_path, vec_db_path, space_db_path, start_index=4, operations=7)

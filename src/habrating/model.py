@@ -45,7 +45,6 @@ class HabrHubRatingRegressor:
     def load_from(self, file_path = None):
         if file_path is None:
            file_path = self.hub_name+'.hubmodel'
-        print(file_path)
         with open(file_path,'rb') as fin:
             self.estimator = pickle.load(fin)
             self.hub_name = pickle.load(fin)

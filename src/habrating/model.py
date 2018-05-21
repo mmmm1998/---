@@ -1,5 +1,6 @@
 import pickle
 import asyncio
+import platform
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.utils import shuffle
 
@@ -36,7 +37,8 @@ class HabrHubRatingRegressor:
 
     def save(self, file_path = None):
         if file_path is None:
-            file_path = self.hub_name+'.hubmodel'
+            arch = platform.architecture()[0].replace('bit','')
+            file_path = self.hub_name+'.hubmodel'+arch
         with open(file_path,'wb') as fout:
             pickle.dump(self.estimator,fout)
             pickle.dump(self.hub_name,fout)
@@ -45,7 +47,8 @@ class HabrHubRatingRegressor:
 
     def load(self, file_path = None):
         if file_path is None:
-           file_path = self.hub_name+'.hubmodel'
+            arch = platform.architecture()[0].replace('bit','')
+            file_path = self.hub_name+'.hubmodel'+arch
         with open(file_path,'rb') as fin:
             self.estimator = pickle.load(fin)
             self.hub_name = pickle.load(fin)

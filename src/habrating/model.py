@@ -34,7 +34,7 @@ class HabrHubRatingRegressor:
         self.text_transformer = text_transformer
         self.title_transformer = title_transformer
 
-    def save_to(self, file_path = None):
+    def save(self, file_path = None):
         if file_path is None:
             file_path = self.hub_name+'.hubmodel'
         with open(file_path,'wb') as fout:
@@ -43,7 +43,7 @@ class HabrHubRatingRegressor:
             pickle.dump(self.text_transformer, fout)
             pickle.dump(self.title_transformer, fout)
 
-    def load_from(self, file_path = None):
+    def load(self, file_path = None):
         if file_path is None:
            file_path = self.hub_name+'.hubmodel'
         with open(file_path,'rb') as fin:
@@ -54,25 +54,32 @@ class HabrHubRatingRegressor:
 
 def load_model(file_path):
     model = HabrHubRatingRegressor('')
-    model.load_from(file_path)
+    model.load(file_path)
     return model
 
-def model_from_hub(hub_name, threads_count=16):
-	text_db_path = f"{hub_name}.pickle"
-	db.save_hub_to_db(hub_name, text_db_path, start_index=1, operations=7, threads_count=threads_count)
+def model_from_db(hub_name, text_db_path, start_index=1, operations=4):
 	vec_db_path = f"vec_{hub_name}.pickle"
 	space_db_path = f"space_{hub_name}.pickle"
-	db.cvt_text_db_to_vec_db(text_db_path, vec_db_path, space_db_path, start_index=4, operations=7)
+	db.cvt_text_db_to_vec_db(text_db_path, vec_db_path, space_db_path, start_index=start_index, operations=4)
 	space_text, space_title = db.load_words_space(space_db_path)
-	print('[6/7]')
+	print(f'[{start_index+2}/{operations}]')
 	X, y = db.cvt_db_to_DataFrames(vec_db_path)
 	X, y = shuffle(X,y)
 	hub = HabrHubRatingRegressor(hub_name)
-	print('[7/7]')
+	print(f'[{start_index+3}/{operations}]')
 	hub.fit(X,y)
 	hub.set_transformers(space_text, space_title)
 	return hub
 
+def make_and_save_model_from_db(hub_name, text_db_path):
+	hub = model_from_db(hub_name,text_db_path)
+	hub.save()
+
+def model_from_hub(hub_name, threads_count=16):
+	text_db_path = f"{hub_name}.pickle"
+	db.save_hub_to_db(hub_name, text_db_path, start_index=1, operations=7, threads_count=threads_count)
+	return model_from_db(hub_name, text_db_path, start_index=4, operations=7)
+
 def make_and_save_model_from_hub(hub_name):
 	hub = model_from_hub(hub_name)
-	hub.save_to()
+	hub.save()

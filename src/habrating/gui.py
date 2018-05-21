@@ -65,14 +65,21 @@ class MainWindow (QMainWindow):
         return self.model.predict_by_posts ([data])[0]
         
     def on_predict_clicked (self):
-        #try:
-            url = self.url_field.text ()
-            self.statusbar.showMessage ("I'm thinking, wait a minute...")
-            score = 0
-            if self.tab_widget.currentIndex () == 0:
+        url = self.url_field.text ()
+        self.statusbar.showMessage ("I'm thinking, wait a minute...")
+        if self.tab_widget.currentIndex () == 0:
+            try:
                 logger.info (f"predicting by url {url}")
+                if not url:
+                    self.statusbar.showMessage ("No input")
+                    return
                 score = self.predict_url (url)
-            else:
+                self.result_field.setText (f"You will get {int (round (score))} point(s)")
+                self.statusbar.showMessage ("Done!")
+            except:
+                self.statusbar.showMessage ("Error while predicting! (invalid URL or connection failure)")
+        else:
+            try:
                 logger.info (f"predicting by direct feed")
                 data = {}
                 data['title'] = self.title_field.text ()
@@ -89,13 +96,13 @@ class MainWindow (QMainWindow):
                 data['author karma'] = self.get_int_from_field (self.akarma_edit)
                 data['author followers'] = self.get_int_from_field (self.asubs_edit)
                 data['year'] = self.get_int_from_field (self.year_edit)
-                print (data.keys ())
+                logger.info (f"Input keys: {data.keys ()}")
                 score = self.predict_direct (data)
-            self.result_field.setText (f"You will get {int (round (score))} point(s)")
-            self.statusbar.showMessage ("Done!")
-        #except ValueError:
-        #    self.statusbar.showMessage ("Wrong input! Only integers are allowed in additional fields")
-            
+                self.result_field.setText (f"You will get {int (round (score))} point(s)")
+                self.statusbar.showMessage ("Done!")
+            except ValueError:
+                self.statusbar.showMessage ("Wrong input! Only integers are allowed in additional fields")
+
     def change_tab_size (self, new_size):
         # Update widgets layout
         self.updateGeometry ()

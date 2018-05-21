@@ -94,7 +94,7 @@ def load_db(path_to_file):
                 widgets=
                     [
                     '[Loading db]',
-                    progressbar.Counter(format='[loadede %s entries]')
+                    progressbar.Counter(format='[loaded %s entries]')
                     ],
                 maxval=progressbar.UnknownLength)
             bar.start()
@@ -186,4 +186,4 @@ def cvt_to_DataFrames(data):
         X.append(row)
         bar.update(index)
     bar.finish()
-    return pd.DataFrame(X, dtype=np.int32), pd.DataFrame(y, dtype=np.int32)
+    return pd.DataFrame(X, dtype=np.int32), np.array(y, dtype=np.int32)

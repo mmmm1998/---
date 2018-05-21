@@ -1,12 +1,13 @@
 import pickle
 import asyncio
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.utils import shuffle
 
 from . import db, parser
 
 class HabrHubRatingRegressor:
     def __init__(self, hub_name):
-        self.estimator = RandomForestRegressor(n_estimators = 50, n_jobs=-1, verbose=2)
+        self.estimator = RandomForestRegressor(n_estimators = 100, n_jobs=-1, verbose=2)
         self.hub_name = hub_name
         self.text_transformer = None
         self.title_transformer = None
@@ -65,6 +66,7 @@ def model_from_hub(hub_name, threads_count=16):
 	space_text, space_title = db.load_words_space(space_db_path)
 	print('[6/7]')
 	X, y = db.cvt_db_to_DataFrames(vec_db_path)
+	X, y = shuffle(X,y)
 	hub = HabrHubRatingRegressor(hub_name)
 	print('[7/7]')
 	hub.fit(X,y)

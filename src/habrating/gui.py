@@ -38,9 +38,19 @@ class MainWindow (QMainWindow):
         self.predict_button.clicked.connect (self.on_predict_clicked)
         self.tab_widget.currentChanged.connect (self.on_tab_switched)
         
-        filename = QFileDialog.getOpenFileName (self, "Select model for prediction", "", "Model files (*.hubmodel)")
-        logger.info ("Selected model file " + filename[0])
-        self.model = model.load_model (filename[0])
+        #filename = QFileDialog.getOpenFileName (self, "Select model for prediction", "", "Model files (*.hubmodel)")
+        #logger.info ("Selected model file " + filename[0])
+        #self.model = model.load_model (filename[0])
+        
+        # List all "*.hubmodel" files in current directory
+        (_, _, filenames) = next (os.walk (os.getcwd ()))
+        filenames = list (filter (lambda s: ".hubmodel" in s, filenames))
+        logger.info ("Found models: " + str (filenames))
+        # Fill selection list with them
+        self.model_selector.clear ()
+        self.model_selector.addItems (filenames)
+        self.model_selector.itemSelectionChanged.connect (self.on_model_selected)
+        self.model = None
         
     def get_int_from_field (self, field):
         text = field.text ()
@@ -64,7 +74,15 @@ class MainWindow (QMainWindow):
         """
         return self.model.predict_by_posts ([data])[0]
         
+    def on_model_selected (self):
+        filename = self.model_selector.currentItem ().text ()
+        logger.info ("Selected " + filename)
+        self.model = model.load_model (filename)
+        
     def on_predict_clicked (self):
+        if not self.model:
+            self.statusbar.showMessage ("No model selected!")
+            return
         url = self.url_field.text ()
         self.statusbar.showMessage ("I'm thinking, wait a minute...")
         if self.tab_widget.currentIndex () == 0:

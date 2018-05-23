@@ -3,7 +3,6 @@ import asyncio
 import re
 import pickle
 import progressbar
-import pandas as pd
 import numpy as np
 from collections import Counter
 from sklearn.feature_extraction.text import CountVectorizer

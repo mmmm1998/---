@@ -10,12 +10,6 @@
     <height>333</height>
    </rect>
   </property>
-  <property name="font">
-   <font>
-    <family>MS Shell Dlg 2</family>
-    <pointsize>9</pointsize>
-   </font>
-  </property>
   <property name="windowTitle">
    <string>Habrating</string>
   </property>
@@ -92,11 +86,6 @@
              </property>
              <item>
               <widget class="QLabel" name="label_url">
-               <property name="font">
-                <font>
-                 <pointsize>9</pointsize>
-                </font>
-               </property>
                <property name="text">
                 <string>URL:</string>
                </property>
@@ -173,11 +162,6 @@
                </item>
                <item>
                 <widget class="QLineEdit" name="title_field">
-                 <property name="font">
-                  <font>
-                   <pointsize>9</pointsize>
-                  </font>
-                 </property>
                 </widget>
                </item>
               </layout>
@@ -199,11 +183,6 @@
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>9</pointsize>
-                </font>
                </property>
               </widget>
              </item>
@@ -350,12 +329,6 @@
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
-          <property name="font">
-           <font>
-            <family>MS Shell Dlg 2</family>
-            <pointsize>9</pointsize>
-           </font>
-          </property>
           <property name="text">
            <string>Predict it</string>
           </property>
@@ -380,12 +353,6 @@
             <width>250</width>
             <height>35</height>
            </size>
-          </property>
-          <property name="font">
-           <font>
-            <family>MS Shell Dlg 2</family>
-            <pointsize>9</pointsize>
-           </font>
           </property>
           <property name="text">
            <string>You will get ... point(s)</string>
@@ -456,11 +423,6 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
-        <property name="font">
-         <font>
-          <pointsize>9</pointsize>
-         </font>
-        </property>
         <property name="alternatingRowColors">
          <bool>true</bool>
         </property>
@@ -518,11 +480,6 @@
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar">
-   <property name="font">
-    <font>
-     <pointsize>9</pointsize>
-    </font>
-   </property>
    <property name="sizeGripEnabled">
     <bool>true</bool>
    </property>

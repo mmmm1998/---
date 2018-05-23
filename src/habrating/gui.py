@@ -120,8 +120,8 @@ class MainWindow (QMainWindow):
                 data['views'] = 0
                 data['comments'] = 0
                 data['bookmarks'] = 0
-                data['company rating'] = 0
                 data['rating'] = 0
+                data['company rating'] = self.get_float_from_field (self.comrating_edit)
                 data['author rating'] = self.get_float_from_field (self.arating_edit)
                 data['author karma'] = self.get_float_from_field (self.akarma_edit)
                 data['author followers'] = self.get_int_from_field (self.asubs_edit)

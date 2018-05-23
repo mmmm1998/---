@@ -123,7 +123,7 @@ class MainWindow (QMainWindow):
                 data['author karma'] = self.get_float_from_field (self.akarma_edit)
                 data['author followers'] = self.get_int_from_field (self.asubs_edit)
                 data['year'] = self.get_int_from_field (self.year_edit)
-                logger.info (f"Input keys: {data.keys ()}")
+                logger.info (f"Input post: {data}")
                 score = self.predict_direct (data)
                 self.result_field.setText (f"You will get {int (round (score))} point(s)")
                 self.statusbar.showMessage ("Done!")

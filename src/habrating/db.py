@@ -174,4 +174,4 @@ def cvt_to_DataFrames(data):
     feature_keys = [key for key in data[0].keys() if key not in ['rating', 'body', 'title']]
     X = [np.concatenate([d['body'], d['title'], [d[key] for key in feature_keys]]) for d in data]
     y = [d['rating'] for d in data]
-    return np.asarray(X, dtype=np.int32), np.asarray(y,dtype=np.int32)
+    return np.asarray(X, dtype=np.float32), np.asarray(y,dtype=np.float32)

@@ -6,13 +6,13 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>816</width>
-    <height>319</height>
+    <width>849</width>
+    <height>333</height>
    </rect>
   </property>
   <property name="font">
    <font>
-    <family>Segoe UI</family>
+    <family>MS Shell Dlg 2</family>
     <pointsize>9</pointsize>
    </font>
   </property>
@@ -47,7 +47,7 @@
          <enum>QTabWidget::Rounded</enum>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <property name="iconSize">
          <size>
@@ -210,20 +210,20 @@
              <item>
               <layout class="QHBoxLayout" name="aux_fields_separator">
                <item>
-                <widget class="QLabel" name="label_arating">
+                <widget class="QLabel" name="label_akarma">
                  <property name="text">
-                  <string>Your rating:</string>
+                  <string>Your karma:</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                  </property>
                  <property name="buddy">
-                  <cstring>arating_edit</cstring>
+                  <cstring>akarma_edit</cstring>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QLineEdit" name="arating_edit">
+                <widget class="QLineEdit" name="akarma_edit">
                  <property name="minimumSize">
                   <size>
                    <width>50</width>
@@ -239,20 +239,20 @@
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="label_akarma">
+                <widget class="QLabel" name="label_arating">
                  <property name="text">
-                  <string>Your karma:</string>
+                  <string>Your rating:</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                  </property>
                  <property name="buddy">
-                  <cstring>akarma_edit</cstring>
+                  <cstring>arating_edit</cstring>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QLineEdit" name="akarma_edit">
+                <widget class="QLineEdit" name="arating_edit">
                  <property name="minimumSize">
                   <size>
                    <width>50</width>
@@ -352,7 +352,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Segoe UI</family>
+            <family>MS Shell Dlg 2</family>
             <pointsize>9</pointsize>
            </font>
           </property>
@@ -383,7 +383,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Segoe UI</family>
+            <family>MS Shell Dlg 2</family>
             <pointsize>9</pointsize>
            </font>
           </property>
@@ -532,13 +532,14 @@
   <tabstop>tab_widget</tabstop>
   <tabstop>title_field</tabstop>
   <tabstop>text_field</tabstop>
-  <tabstop>arating_edit</tabstop>
   <tabstop>akarma_edit</tabstop>
+  <tabstop>arating_edit</tabstop>
   <tabstop>asubs_edit</tabstop>
   <tabstop>year_edit</tabstop>
   <tabstop>url_field</tabstop>
   <tabstop>predict_button</tabstop>
   <tabstop>result_field</tabstop>
+  <tabstop>model_selector</tabstop>
  </tabstops>
  <resources/>
  <connections/>

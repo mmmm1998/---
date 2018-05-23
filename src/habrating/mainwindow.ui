@@ -10,6 +10,12 @@
     <height>319</height>
    </rect>
   </property>
+  <property name="font">
+   <font>
+    <family>Segoe UI</family>
+    <pointsize>9</pointsize>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Habrating</string>
   </property>
@@ -88,7 +94,7 @@
               <widget class="QLabel" name="label_url">
                <property name="font">
                 <font>
-                 <pointsize>8</pointsize>
+                 <pointsize>9</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -169,7 +175,7 @@
                 <widget class="QLineEdit" name="title_field">
                  <property name="font">
                   <font>
-                   <pointsize>8</pointsize>
+                   <pointsize>9</pointsize>
                   </font>
                  </property>
                 </widget>
@@ -196,7 +202,7 @@
                </property>
                <property name="font">
                 <font>
-                 <pointsize>8</pointsize>
+                 <pointsize>9</pointsize>
                 </font>
                </property>
               </widget>
@@ -346,7 +352,8 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>8</pointsize>
+            <family>Segoe UI</family>
+            <pointsize>9</pointsize>
            </font>
           </property>
           <property name="text">
@@ -376,7 +383,8 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>8</pointsize>
+            <family>Segoe UI</family>
+            <pointsize>9</pointsize>
            </font>
           </property>
           <property name="text">
@@ -450,7 +458,7 @@
         </property>
         <property name="font">
          <font>
-          <pointsize>8</pointsize>
+          <pointsize>9</pointsize>
          </font>
         </property>
         <property name="alternatingRowColors">
@@ -510,6 +518,11 @@
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar">
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
+   </property>
    <property name="sizeGripEnabled">
     <bool>true</bool>
    </property>

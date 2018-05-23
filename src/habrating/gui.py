@@ -1,5 +1,6 @@
 import sys
 import os
+import platform
 from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PyQt5 import uic
@@ -42,9 +43,11 @@ class MainWindow (QMainWindow):
         #logger.info ("Selected model file " + filename[0])
         #self.model = model.load_model (filename[0])
         
-        # List all "*.hubmodel" files in current directory
+        # List all "*.hubmodelXX" files in current directory
+        arch = platform.architecture()[0].replace('bit','')
+        ext_mask = ".hubmodel" + arch
         (_, _, filenames) = next (os.walk (os.getcwd ()))
-        filenames = list (filter (lambda s: ".hubmodel" in s, filenames))
+        filenames = list (filter (lambda s: ext_mask in s, filenames))
         logger.info ("Found models: " + str (filenames))
         # Fill selection list with them
         self.model_selector.clear ()

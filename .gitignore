@@ -3,3 +3,5 @@
 *.pickle
 *.log
 *.hubmodel
+*.hubmodel32
+*.hubmodel64

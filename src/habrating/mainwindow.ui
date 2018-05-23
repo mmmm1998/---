@@ -41,7 +41,7 @@
          <enum>QTabWidget::Rounded</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <property name="iconSize">
          <size>
@@ -169,7 +169,7 @@
                 <widget class="QLineEdit" name="title_field">
                  <property name="font">
                   <font>
-                   <pointsize>9</pointsize>
+                   <pointsize>8</pointsize>
                   </font>
                  </property>
                 </widget>
@@ -196,7 +196,7 @@
                </property>
                <property name="font">
                 <font>
-                 <pointsize>9</pointsize>
+                 <pointsize>8</pointsize>
                 </font>
                </property>
               </widget>
@@ -346,7 +346,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>9</pointsize>
+            <pointsize>8</pointsize>
            </font>
           </property>
           <property name="text">
@@ -376,7 +376,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>9</pointsize>
+            <pointsize>8</pointsize>
            </font>
           </property>
           <property name="text">
@@ -450,7 +450,7 @@
         </property>
         <property name="font">
          <font>
-          <pointsize>9</pointsize>
+          <pointsize>8</pointsize>
          </font>
         </property>
         <property name="alternatingRowColors">
@@ -495,12 +495,12 @@
         </item>
         <item>
          <property name="text">
-          <string>File K</string>
+          <string>File C</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>File C</string>
+          <string>File K</string>
          </property>
         </item>
        </widget>

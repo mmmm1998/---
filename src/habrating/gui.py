@@ -53,7 +53,10 @@ class MainWindow (QMainWindow):
         self.model_selector.clear ()
         self.model_selector.addItems (filenames)
         self.model_selector.itemSelectionChanged.connect (self.on_model_selected)
-        self.model = None
+        if len (filenames) == 1:
+            self.model_selector.setCurrentRow (0)
+        else:
+            self.model = None
         
     def get_int_from_field (self, field):
         text = field.text ()

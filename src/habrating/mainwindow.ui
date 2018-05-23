@@ -41,7 +41,7 @@
          <enum>QTabWidget::Rounded</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <property name="iconSize">
          <size>
@@ -101,7 +101,7 @@
               <widget class="QLineEdit" name="url_field">
                <property name="minimumSize">
                 <size>
-                 <width>400</width>
+                 <width>450</width>
                  <height>0</height>
                 </size>
                </property>
@@ -161,8 +161,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QLineEdit" name="title_field">
-                </widget>
+                <widget class="QLineEdit" name="title_field"/>
                </item>
               </layout>
              </item>
@@ -205,7 +204,7 @@
                 <widget class="QLineEdit" name="akarma_edit">
                  <property name="minimumSize">
                   <size>
-                   <width>50</width>
+                   <width>55</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -234,7 +233,7 @@
                 <widget class="QLineEdit" name="arating_edit">
                  <property name="minimumSize">
                   <size>
-                   <width>50</width>
+                   <width>55</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -261,9 +260,15 @@
                </item>
                <item>
                 <widget class="QLineEdit" name="asubs_edit">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
                  <property name="minimumSize">
                   <size>
-                   <width>50</width>
+                   <width>55</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -290,9 +295,15 @@
                </item>
                <item>
                 <widget class="QLineEdit" name="year_edit">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
                  <property name="minimumSize">
                   <size>
-                   <width>50</width>
+                   <width>55</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -422,6 +433,12 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>150</width>
+          <height>0</height>
+         </size>
         </property>
         <property name="alternatingRowColors">
          <bool>true</bool>

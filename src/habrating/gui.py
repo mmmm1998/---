@@ -61,6 +61,12 @@ class MainWindow (QMainWindow):
             return int (text)
         return int (field.placeholderText ())
         
+    def get_float_from_field (self, field):
+        text = field.text ()
+        if len (text):
+            return float (text)
+        return float (field.placeholderText ())
+        
     def predict_url (self, url):
         """
         Predict rating by URL to article
@@ -113,8 +119,8 @@ class MainWindow (QMainWindow):
                 data['bookmarks'] = 0
                 data['company rating'] = 0
                 data['rating'] = 0
-                data['author rating'] = self.get_int_from_field (self.arating_edit)
-                data['author karma'] = self.get_int_from_field (self.akarma_edit)
+                data['author rating'] = self.get_float_from_field (self.arating_edit)
+                data['author karma'] = self.get_float_from_field (self.akarma_edit)
                 data['author followers'] = self.get_int_from_field (self.asubs_edit)
                 data['year'] = self.get_int_from_field (self.year_edit)
                 logger.info (f"Input keys: {data.keys ()}")
@@ -122,7 +128,7 @@ class MainWindow (QMainWindow):
                 self.result_field.setText (f"You will get {int (round (score))} point(s)")
                 self.statusbar.showMessage ("Done!")
             except ValueError:
-                self.statusbar.showMessage ("Wrong input! Only integers are allowed in additional fields")
+                self.statusbar.showMessage ("Wrong input! Make sure you write numbers in additional fields")
 
     def change_tab_size (self, new_size):
         # Update widgets layout

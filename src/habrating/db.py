@@ -45,7 +45,7 @@ def save_db(data, path_to_file):
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
-def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16, operations=3,
+def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16, operations=2,
         start_index=1):
     """
     Save all hub's posts to data file
@@ -55,37 +55,28 @@ def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16, operati
     """
     print(f'[{start_index}/{operations}]')
 
-    if threads_count is not None:
-        urls = parser.get_all_hub_article_urls(hub_name, threads_count=threads_count)
-    else:
-        urls = parser.get_all_hub_article_urls(hub_name)
+    urls = parser.get_all_hub_article_urls(hub_name, threads_count=threads_count)
 
     ioloop = asyncio.get_event_loop()
-    articles = []
     memo = {}
 
     print(f'[{start_index+1}/{operations}]')
     bar = utils.get_bar(len(urls)).start()
-    for index in range(0, len(urls), threads_count):
-        tasks = []
-        for url in urls[index:min(index + threads_count, len(urls))]:
-            tasks.append(asyncio.ensure_future(
-                parser.parse_article(url, year_up_limit=max_year, author_memoization=memo)))
-        bar.update(index)
-        articles += filter(lambda x: x is not None, ioloop.run_until_complete(asyncio.gather(*tasks)))
-    bar.finish()
-    logger.info(f"parsed {len(articles)} articles from hub '{hub_name}'")
 
-    print(f'[{start_index+2}/{operations}]')
-    bar = utils.get_bar(len(articles)).start()
-    fout = open(file_path,'wb')
-    try:
-        for index, parsed_date in enumerate(articles):
-            append_db(parsed_date, file_path, fout)
+    with open(file_path,'wb') as fout:
+        for index in range(0, len(urls), threads_count):
+            tasks = []
+            for url in urls[index:min(index + threads_count, len(urls))]:
+                # closure
+                async def parse_and_save():
+                    post = await parser.parse_article(url, year_up_limit=max_year, author_memoization=memo)
+                    if post is not None:
+                        append_db(post, None, open_stream=fout)
+
+                tasks.append(asyncio.ensure_future(parse_and_save()))
             bar.update(index)
-    finally:
-        fout.close()
-        bar.finish()
+            ioloop.run_until_complete(asyncio.gather(*tasks))
+    bar.finish()
 
 def load_db(path_to_file):
     """

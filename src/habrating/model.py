@@ -63,7 +63,7 @@ def load_model(file_path):
 def model_from_db(hub_name, text_db_path, start_index=1, operations=4):
 	vec_db_path = f"vec_{hub_name}.pickle"
 	space_db_path = f"space_{hub_name}.pickle"
-	db.cvt_text_db_to_vec_db(text_db_path, vec_db_path, space_db_path, start_index=start_index, operations=4)
+	db.cvt_text_db_to_vec_db(text_db_path, vec_db_path, space_db_path, start_index=start_index, operations=6)
 	space_text, space_title = db.load_words_space(space_db_path)
 	print(f'[{start_index+2}/{operations}]')
 	X, y = db.cvt_db_to_DataFrames(vec_db_path)
@@ -80,8 +80,8 @@ def make_and_save_model_from_db(hub_name, text_db_path):
 
 def model_from_hub(hub_name, threads_count=16):
 	text_db_path = f"{hub_name}.pickle"
-	db.save_hub_to_db(hub_name, text_db_path, start_index=1, operations=7, threads_count=threads_count)
-	return model_from_db(hub_name, text_db_path, start_index=4, operations=7)
+	db.save_hub_to_db(hub_name, text_db_path, start_index=1, operations=6, threads_count=threads_count)
+	return model_from_db(hub_name, text_db_path, start_index=3, operations=6)
 
 def make_and_save_model_from_hub(hub_name):
 	hub = model_from_hub(hub_name)

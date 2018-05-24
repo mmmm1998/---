@@ -5,3 +5,4 @@ sklearn
 PyQt5
 numpy
 scipy
+lxml

@@ -22,7 +22,7 @@ def init_db(path_to_file):
     except Exception as e:
         logger.warn("error: "+repr(e))
 
-def write_db(data, path_to_file, open_stream = None):
+def append_db(data, path_to_file, open_stream = None):
     """
     Insert parsed post data into data file
         :param data: parsed post data
@@ -30,10 +30,18 @@ def write_db(data, path_to_file, open_stream = None):
     """
     try:
         if not open_stream:
-            with open(path_to_file,'wb') as fout:
+            with open(path_to_file,'ab') as fout:
                 pickle.dump(data,fout)
         else:
             pickle.dump(data,open_stream)
+    except Exception as e:
+        logger.warn(f'error: {repr(e)}')
+
+def save_db(data, path_to_file):
+    try:
+        with open(path_to_file,'wb') as fout:
+            for post in data:
+                append_db(post, None, open_stream=fout)
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
@@ -73,7 +81,7 @@ def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16, operati
     fout = open(file_path,'wb')
     try:
         for index, parsed_date in enumerate(articles):
-            write_db(parsed_date, file_path, fout)
+            append_db(parsed_date, file_path, fout)
             bar.update(index)
     finally:
         fout.close()
@@ -147,7 +155,7 @@ def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_wor
     with open(path_to_vectorize_file,'wb') as fout:
         for index, post in enumerate(all_data):
             vectorize_post(post, body_vectorizer, title_vectorizer)
-            write_db(post, path_to_vectorize_file, fout)
+            append_db(post, path_to_vectorize_file, fout)
             bar.update(index)
     bar.finish()
 

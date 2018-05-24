@@ -5,3 +5,6 @@
 *.hubmodel
 *.hubmodel32
 *.hubmodel64
+# Ignore pyinstaller dirs
+dist
+build

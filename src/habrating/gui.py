@@ -1,3 +1,4 @@
+import sys
 import os
 import platform
 from PyQt5.QtCore import Qt, QCoreApplication

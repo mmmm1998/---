@@ -1,4 +1,3 @@
-import sqlite3
 import asyncio
 import re
 import pickle

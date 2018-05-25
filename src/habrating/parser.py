@@ -34,6 +34,10 @@ def _normalize_views_count(views_string):
         return -1
 
 def _normalize_rating(rating_string):
+    """
+    Transform rating representation to number
+        :param rating_string: string with rating
+    """
     if '–' in rating_string:
         rating_string = rating_string.replace('–','-')
     return int(rating_string)
@@ -45,12 +49,16 @@ def _body2text(body):
         :return: plain text of article
         :rtype: string
     """
-    # TODO: omit images too
     for elem in body.findall('.//code'):
         elem.getparent().remove(elem)
     return body.text_content().lower()
 
 async def _safe_request(link, session):
+    """
+    Make request and if it fails, make it again
+        :param link: url for requesting
+        :param session: auihttp session
+    """
     max_attempt = 10
     for attempt in range(max_attempt):
         page = await session.get(link, timeout=120)
@@ -210,8 +218,6 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
         post['rating']=None
 
     try:
-        # TODO: If comments count > 1000, found string will be '1k'? 
-        # Maybe use `_normalize_views_count`?
         post['comments'] = int(data.find(_find_tags['comments count']).text)
     except Exception as e:
         logger.info(f"page {link}")
@@ -255,7 +261,11 @@ def _pagebody2articles(tree):
     return list(map(lambda href: href.attrib['href'], hrefs))
 
 async def _get_hub_last_page(hub):
-     async with aiohttp.ClientSession() as session:
+    """
+    Get last page of target hub
+        :param hub: hub name
+    """
+    async with aiohttp.ClientSession() as session:
         try:
             url = 'https://habrahabr.ru/hub/'+hub+'/all/page1'
             page_response = await _safe_request(url, session)

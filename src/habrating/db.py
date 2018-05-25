@@ -17,7 +17,7 @@ def init_db(path_to_file):
         :return: None
     """
     try:
-        file = open(path_to_file,'wb')
+        file = open(path_to_file, 'wb')
         file.close()
     except Exception as e:
         logger.warn("error: "+repr(e))
@@ -30,16 +30,21 @@ def append_db(data, path_to_file, open_stream = None):
     """
     try:
         if not open_stream:
-            with open(path_to_file,'ab') as fout:
-                pickle.dump(data,fout)
+            with open(path_to_file, 'ab') as fout:
+                pickle.dump(data, fout)
         else:
-            pickle.dump(data,open_stream)
+            pickle.dump(data, open_stream)
     except Exception as e:
         logger.warn(f'error: {repr(e)}')
 
 def save_db(data, path_to_file):
+    """
+    Save all post into data file
+        :param data: array with parsed post data
+        :param path_to_file: path to data file
+    """
     try:
-        with open(path_to_file,'wb') as fout:
+        with open(path_to_file, 'wb') as fout:
             for post in data:
                 append_db(post, None, open_stream=fout)
     except Exception as e:
@@ -63,7 +68,7 @@ def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16, operati
     print(f'[{start_index+1}/{operations}]')
     bar = utils.get_bar(len(urls)).start()
 
-    with open(file_path,'wb') as fout:
+    with open(file_path, 'wb') as fout:
         for index in range(0, len(urls), threads_count):
             tasks = []
             for url in urls[index:min(index + threads_count, len(urls))]:
@@ -125,6 +130,12 @@ def _fit_text_transformers(data, cutoff=2, text_max_size=5000, title_max_size=50
     return body_transformer, title_transformer
 
 def vectorize_post(post, body_vectorizer, title_vectorizer):
+    """
+    Vectorize post title and data
+        :param post: post parsed data
+        :param body_vectorizer: trained vectorizer for post body
+        :param title_vectorizer: trained vectorizer for post title
+    """
     post['body'] = body_vectorizer.transform([post['body']]).toarray()[0]
     post['title'] = title_vectorizer.transform([post['title']]).toarray()[0]
 
@@ -153,21 +164,39 @@ def cvt_text_db_to_vec_db(path_to_text_file, path_to_vectorize_file, path_to_wor
     save_hub_vectorizers(path_to_words_space_file, body_vectorizer, title_vectorizer)
 
 def save_hub_vectorizers(file_path, body_vectorizer, title_vectorizer):
+    """
+    Save title and body vectorizers into one file
+        :param file_path: path to file
+        :param body_vectorizer: trained vectorizer for post body
+        :param title_vectorizer: trained vectorizer for post title
+    """
     with open(file_path,'wb') as fout:
         pickle.dump(body_vectorizer,fout)
         pickle.dump(title_vectorizer,fout)
 
-def load_words_space(words_space_file_path):
-    with open(words_space_file_path,'rb') as fin:
+def load_hub_vectorizers(vectorizers_file_path):
+    """
+    Load saved title and boyd vectorizers from file
+        :param vectorizers_file_path: path to saved vectorizers
+    """
+    with open(vectorizers_file_path,'rb') as fin:
         body_vectorizer = pickle.load(fin)
         title_vectorizer = pickle.load(fin)
     return body_vectorizer, title_vectorizer
 
 def cvt_db_to_DataFrames(path_to_db):
+    """
+    Load saved vectorized parsed data and convert to X and y for model training
+        :param path_to_db: path to saved data
+    """
     data = load_db(path_to_db)
     return cvt_to_DataFrames(data)
 
 def cvt_to_DataFrames(data):
+    """
+    Convert array of vectorize parsed post data to X (features data) and y (target data)
+        :param data: array of vectorize parsed post data
+    """
     feature_keys = [key for key in data[0].keys() if key not in ['rating', 'body', 'title']]
     X = [np.concatenate([d['body'], d['title'], [d[key] for key in feature_keys]]) for d in data]
     y = [d['rating'] for d in data]

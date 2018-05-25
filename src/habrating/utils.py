@@ -1,6 +1,10 @@
 import progressbar
 
 def get_bar(maxval):
+    """
+    Return customized progress bar
+        :param maxval: maxval for bar
+    """
     widgets=[
     '[', progressbar.Timer(), '] ',
     '[', progressbar.SimpleProgress(), '] ',

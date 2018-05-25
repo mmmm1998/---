@@ -58,7 +58,7 @@ async def _safe_request(link, session):
         :param session: auihttp session
     """
     max_attempt = 10
-    for attempt in range(max_attempt):
+    for _ in range(max_attempt):
         page = await session.get(link, timeout=120)
         if page.status == 200:
             return page

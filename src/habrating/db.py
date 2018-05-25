@@ -1,9 +1,7 @@
 import asyncio
-import re
 import pickle
 import progressbar
 import numpy as np
-from collections import Counter
 from sklearn.feature_extraction.text import CountVectorizer
 
 from . import logger
@@ -20,7 +18,7 @@ def init_db(path_to_file):
         file = open(path_to_file, 'wb')
         file.close()
     except Exception as e:
-        logger.warn("error: "+repr(e))
+        logger.warning(f'error: {repr(e)}')
 
 def append_db(data, path_to_file, open_stream = None):
     """
@@ -35,7 +33,7 @@ def append_db(data, path_to_file, open_stream = None):
         else:
             pickle.dump(data, open_stream)
     except Exception as e:
-        logger.warn(f'error: {repr(e)}')
+        logger.warning(f'error: {repr(e)}')
 
 def save_db(data, path_to_file):
     """
@@ -48,7 +46,7 @@ def save_db(data, path_to_file):
             for post in data:
                 append_db(post, None, open_stream=fout)
     except Exception as e:
-        logger.warn(f'error: {repr(e)}')
+        logger.warning(f'error: {repr(e)}')
 
 def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16, operations=2,
         start_index=1):
@@ -73,12 +71,12 @@ def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16, operati
             tasks = []
             for url in urls[index:min(index + threads_count, len(urls))]:
                 # closure
-                async def parse_and_save():
-                    post = await parser.parse_article(url, year_up_limit=max_year, author_memoization=memo)
+                async def parse_and_save(link):
+                    post = await parser.parse_article(link, year_up_limit=max_year, author_memoization=memo)
                     if post is not None:
                         append_db(post, None, open_stream=fout)
 
-                tasks.append(asyncio.ensure_future(parse_and_save()))
+                tasks.append(asyncio.ensure_future(parse_and_save(url)))
             bar.update(index)
             ioloop.run_until_complete(asyncio.gather(*tasks))
     bar.finish()
@@ -111,7 +109,7 @@ def load_db(path_to_file):
             logger.info(f'load {len(data)} posts data')
             return data
     except Exception as e:
-        logger.warn(f'error: {repr(e)}')
+        logger.warning(f'error: {repr(e)}')
 
 def _fit_text_transformers(data, cutoff=2, text_max_size=5000, title_max_size=500):
     """
@@ -123,8 +121,8 @@ def _fit_text_transformers(data, cutoff=2, text_max_size=5000, title_max_size=50
     """
     textes = [post['body'] for post in data]
     titles = [post['title'] for post in data]
-    body_transformer = CountVectorizer(max_features=text_max_size, dtype=np.int8)
-    title_transformer = CountVectorizer(max_features=title_max_size, dtype=np.int8)
+    body_transformer = CountVectorizer(max_features=text_max_size, dtype=np.int8, min_df=cutoff)
+    title_transformer = CountVectorizer(max_features=title_max_size, dtype=np.int8, min_df=cutoff)
     body_transformer.fit(textes)
     title_transformer.fit(titles)
     return body_transformer, title_transformer

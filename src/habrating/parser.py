@@ -2,9 +2,7 @@ import re
 import asyncio
 import aiohttp
 import datetime
-from lxml.html import parse, document_fromstring
-from lxml.builder import E
-from urllib.request import urlopen 
+from lxml.html import document_fromstring
 
 from . import logger
 from . import utils
@@ -30,8 +28,8 @@ def _normalize_views_count(views_string):
 
     try:
         return int(num_part*mult_part)
-    except:
-        return -1
+    except ValueError:
+        return None
 
 def _normalize_rating(rating_string):
     """
@@ -67,7 +65,7 @@ async def _safe_request(link, session):
         if page.status >= 500:
             logger.info(f"status for {link} is {page.status}, wait 1 second")
         else:
-            logger.warn(f"link {link} is not valid, return None")
+            logger.warning(f"link {link} is not valid, return None")
             return None
         page = None
         await asyncio.sleep(1)
@@ -127,7 +125,7 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
             pageHtml = await page.text()
             data = document_fromstring(pageHtml)
         except IOError as e:
-            logger.warn("link error: "+repr(e))
+            logger.warning(f'link error: {repr(e)}')
             return None
 
         try:
@@ -142,7 +140,7 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
             post['year'] = year
         except Exception as e:
             logger.info(f"page {link}")
-            logger.warn(f"error while parse year: {repr(e)}")
+            logger.warning(f"error while parse year: {repr(e)}")
             post['year'] = None
 
         if (year_up_limit is not None) and (year > year_up_limit):
@@ -153,7 +151,7 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
             post['title'] = data.find(_find_tags['title']).text
         except Exception as e:
             logger.info(f"page {link}")
-            logger.warn(f"error while parse title: {repr(e)}")
+            logger.warning(f"error while parse title: {repr(e)}")
             post['title'] = None
 
         try:
@@ -164,7 +162,7 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
                 post['company rating'] = 0.0
         except Exception as e:
             logger.info(f"page {link}")
-            logger.warn(f"error while parse company rating: {repr(e)}")
+            logger.warning(f"error while parse company rating: {repr(e)}")
             post['company rating'] = None
 
         try:
@@ -195,7 +193,7 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
                     author_memoization[author] = (post['author karma'], post['author rating'], post['author followers'])
         except Exception as e:
             logger.info(f"page {link}")
-            logger.warn(f"error while parse author '{author}': {repr(e)}")
+            logger.warning(f"error while parse author '{author}': {repr(e)}")
             post['author karma'] = None
             post['author rating'] = None
             post['author followers'] = None
@@ -205,7 +203,7 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
         post['body length'] = len(post['body'])
     except Exception as e:
         logger.info(f"page {link}")
-        logger.warn(f"error while parse post body: {repr(e)}")
+        logger.warning(f"error while parse post body: {repr(e)}")
         post['body'] = None
         post['body length'] = None
 
@@ -214,14 +212,14 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
         post['rating'] = _normalize_rating(raw_rating)
     except Exception as e:
         logger.info(f"page {link}")
-        logger.warn(f"error while parse rating: {repr(e)}")
+        logger.warning(f"error while parse rating: {repr(e)}")
         post['rating']=None
 
     try:
         post['comments'] = int(data.find(_find_tags['comments count']).text)
     except Exception as e:
         logger.info(f"page {link}")
-        logger.warn(f"error while parse comments: {repr(e)}")
+        logger.warning(f"error while parse comments: {repr(e)}")
         post['comments'] = None
 
     try:
@@ -229,14 +227,14 @@ async def parse_article(link, year_up_limit = None, author_memoization=None):
         post['views'] = _normalize_views_count(raw_views)
     except Exception as e:
         logger.info(f"page {link}")
-        logger.warn(f"error while parse views: {repr(e)}")
+        logger.warning(f"error while parse views: {repr(e)}")
         post['views'] = None
 
     try:
         post['bookmarks'] = int(data.find(_find_tags['bookmarks count']).text)
     except Exception as e:
         logger.info(f"page {link}")
-        logger.warn(f"error while parse bookmarks: {repr(e)}")
+        logger.warning(f"error while parse bookmarks: {repr(e)}")
         post['bookmarks'] = None
 
     return post
@@ -293,8 +291,9 @@ async def get_articles_from_page(page_url):
             page_response = await _safe_request(page_url, session)
             page_html = await page_response.text()
         except Exception as e:
-            logger.warn(f"link {page_url}: "+repr(e))
+            logger.warning(f"link {page_url}: "+repr(e))
             return None
+
         if _is_page_nonempty(page_html):
             data = document_fromstring(page_html)
             page_articles = _pagebody2articles(data)

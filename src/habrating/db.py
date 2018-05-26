@@ -111,7 +111,7 @@ def load_db(path_to_file):
     except Exception as e:
         logger.warning(f'error: {repr(e)}')
 
-def _fit_text_transformers(data, cutoff=2, text_max_size=5000, title_max_size=500):
+def _fit_text_transformers(data, cutoff=2, text_max_size=20000, title_max_size=500):
     """
     Create word space from parsed article data
         :param data: list of article texts

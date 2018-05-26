@@ -66,7 +66,7 @@
         </property>
         <widget class="QWidget" name="url_tab">
          <attribute name="title">
-          <string>Predict by URL</string>
+          <string>По URL</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_2">
           <item row="1" column="0">
@@ -127,7 +127,7 @@
         </widget>
         <widget class="QWidget" name="direct_tab">
          <attribute name="title">
-          <string>Predict by direct feed</string>
+          <string>По прямому вводу</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout">
           <item row="0" column="0">
@@ -150,7 +150,7 @@
                <item>
                 <widget class="QLabel" name="label_title">
                  <property name="text">
-                  <string>Title:</string>
+                  <string>Заголовок:</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -168,7 +168,7 @@
              <item>
               <widget class="QLabel" name="label">
                <property name="text">
-                <string>Text:</string>
+                <string>Текст статьи:</string>
                </property>
                <property name="buddy">
                 <cstring>text_field</cstring>
@@ -190,7 +190,7 @@
                <item>
                 <widget class="QLabel" name="label_akarma">
                  <property name="text">
-                  <string>Your karma:</string>
+                  <string>Ваша карма</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -219,7 +219,7 @@
                <item>
                 <widget class="QLabel" name="label_arating">
                  <property name="text">
-                  <string>Your rating:</string>
+                  <string>Ваш рейтинг</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -248,7 +248,7 @@
                <item>
                 <widget class="QLabel" name="label_asubs">
                  <property name="text">
-                  <string>Your followers:</string>
+                  <string>Подписчиков</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -293,7 +293,7 @@
             <item>
              <widget class="QLabel" name="label_year">
               <property name="text">
-               <string>Year of publishment:</string>
+               <string>Год публикации</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -328,7 +328,7 @@
             <item>
              <widget class="QLabel" name="label_comrating">
               <property name="text">
-               <string>Your company raitng:</string>
+               <string>Рейтинг вашей компании</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -371,7 +371,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Predict it</string>
+           <string>Предсказать</string>
           </property>
           <property name="shortcut">
            <string>Return</string>
@@ -396,7 +396,7 @@
            </size>
           </property>
           <property name="text">
-           <string>You will get ... point(s)</string>
+           <string>Думаю, рейтинг будет ...</string>
           </property>
           <property name="frame">
            <bool>true</bool>
@@ -449,7 +449,7 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>Choose a predictor:</string>
+         <string>Выберите модель:</string>
         </property>
         <property name="buddy">
          <cstring>model_selector</cstring>

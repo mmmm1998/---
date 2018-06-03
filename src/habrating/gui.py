@@ -87,9 +87,13 @@ class MainWindow (QMainWindow):
         return self.model.predict_by_posts ([data])[0]
         
     def on_model_selected (self):
-        filename = self.model_selector.currentItem ().text ()
-        logger.info ("Selected " + filename)
-        self.model = model.load_model (filename)
+        try:
+            filename = self.model_selector.currentItem ().text ()
+            logger.info ("Selected " + filename)
+            self.model = model.load_model (filename)
+        except:
+            logger.warn ("Failed selecting model " + filename)
+            self.statusbar.showMessage ("Не удалось загрузить модель!")
         
     def on_predict_clicked (self):
         if not self.model:

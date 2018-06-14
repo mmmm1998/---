@@ -26,16 +26,5 @@ class TestViewsNormalize(unittest.TestCase):
         e = 20000
         self.assertEqual(parser._normalize_views_count(s),e)
 
-class TestVectorizeText(unittest.TestCase):
-    def test1(self):
-        space = {'except': 0, 'one': 1, 'of': 2, 'this': 3, 'movie': 4, 'man': 5, 'have': 6,
-            'cat': 7, 'five': 8, 'magic': 9, 'far': 10, 'logic': 11, 'perfect':12}
-
-        s = {'body': "one of this man have five cat"}
-        e = {'body': [0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0]}
-
-        db.vectorize_text(s, space)
-        self.assertEqual(s,e)
-
 if __name__ == '__main__':
     unittest.main(testRunner=crr.ColourTextTestRunner, verbosity=2) 

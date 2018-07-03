@@ -76,6 +76,7 @@ class MainWindow (QMainWindow):
             :param url: self-descriptive
             :return: estimate rating
         """
+        logger.info(f"url = {url}")
         return self.model.predict_by_urls ([url])[0]
     
     def predict_direct (self, data):

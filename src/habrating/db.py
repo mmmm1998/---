@@ -5,7 +5,6 @@ import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 
 from . import logger
-from . import parser
 from . import utils
 
 def init_db(path_to_file):
@@ -47,39 +46,6 @@ def save_db(data, path_to_file):
                 append_db(post, None, open_stream=fout)
     except Exception as e:
         logger.warning(f'error: {repr(e)}')
-
-def save_hub_to_db(hub_name, file_path, max_year=None, threads_count=16, operations=2,
-        start_index=1):
-    """
-    Save all hub's posts to data file
-        :param hub_name: name of hub
-        :param file_path: path to loaded data file
-        :param max_year: posts younger, that max_year, will be ignored
-    """
-    print(f'[{start_index}/{operations}]')
-
-    urls = parser.get_all_hub_article_urls(hub_name, threads_count=threads_count)
-
-    ioloop = asyncio.get_event_loop()
-    memo = {}
-
-    print(f'[{start_index+1}/{operations}]')
-    bar = utils.get_bar(len(urls)).start()
-
-    with open(file_path, 'wb') as fout:
-        for index in range(0, len(urls), threads_count):
-            tasks = []
-            for url in urls[index:min(index + threads_count, len(urls))]:
-                # closure
-                async def parse_and_save(link):
-                    post = await parser.parse_article(link, year_up_limit=max_year, author_memoization=memo)
-                    if post is not None:
-                        append_db(post, None, open_stream=fout)
-
-                tasks.append(asyncio.ensure_future(parse_and_save(url)))
-            bar.update(index)
-            ioloop.run_until_complete(asyncio.gather(*tasks))
-    bar.finish()
 
 def load_db(path_to_file):
     """

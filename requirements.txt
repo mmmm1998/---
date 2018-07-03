@@ -1,8 +1,9 @@
 colour_runner
-aiohttp
 progressbar33
 sklearn
 PyQt5
 numpy
 scipy
 lxml
+billiard
+scrapy

@@ -103,7 +103,7 @@ def model_from_db(hub_name, text_db_path, start_index=1, operations=4):
     """
     vec_db_path = f"vec_{hub_name}.pickle"
     space_db_path = f"space_{hub_name}.pickle"
-    db.cvt_text_db_to_vec_db(text_db_path, vec_db_path, space_db_path, start_index=start_index, operations=6)
+    db.cvt_text_db_to_vec_db(text_db_path, vec_db_path, space_db_path, start_index=start_index, operations=operations)
     space_text, space_title = db.load_hub_vectorizers(space_db_path)
     print(f'[{start_index+2}/{operations}]')
     X, y = db.cvt_db_to_DataFrames(vec_db_path)
@@ -123,15 +123,15 @@ def make_and_save_model_from_db(hub_name, text_db_path):
     hub = model_from_db(hub_name,text_db_path)
     hub.save()
 
-def model_from_hub(hub_name, threads_count=16):
+def model_from_hub(hub_name):
     """
     Create model from hub
         :param hub_name: name of target hub
         :param threads_count: count of loaded threads
     """
     text_db_path = f"{hub_name}.pickle"
-    parser.db.save_hub_to_db(hub_name, text_db_path, start_index=1, operations=6)
-    return model_from_db(hub_name, text_db_path, start_index=3, operations=6)
+    parser.save_hub_to_db(hub_name, text_db_path, start_index=1, operations=5)
+    return model_from_db(hub_name, text_db_path, start_index=2, operations=5)
 
 def make_and_save_model_from_hub(hub_name):
     """

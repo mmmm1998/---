@@ -205,6 +205,8 @@ def save_hub_to_db(hub_name, file_path, max_year=None, operations=1, start_index
     with contextlib.suppress(FileNotFoundError):
         os.remove(file_path)
 
+    print(f'[{start_index}/{operations}]')
+
     bar = utils.get_bar(_hub_articles_count(hub_name)).start()
 
     new_thread = CrawlerThread(HabrHubSpider, Settings({
@@ -212,7 +214,8 @@ def save_hub_to_db(hub_name, file_path, max_year=None, operations=1, start_index
         'FEED_URI': f'./{file_path}',
         'LOG_LEVEL': 'ERROR',
         'RETRY_TIMES': 10
-    }), hub_name, bar,)
+    }), hub_name, bar)
+
     new_thread.start()
     new_thread.join()
 
@@ -222,8 +225,7 @@ def parse_article(url):
         'FEED_FORMAT': 'pickle',
         'FEED_URI': f'{tmp_file.name}',
         'LOG_LEVEL': 'ERROR',
-        'RETRY_TIMES': 10,
-        'ITEM_PIPELINES': {'habrating.parser.SingletonrStorePipeline': 300}
+        'RETRY_TIMES': 10
     }), url)
     new_thread.start()
     new_thread.join()

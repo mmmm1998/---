@@ -40,7 +40,7 @@ class HabrHubRatingRegressor:
             :param urls: array of url from target hub (must equals to model hub name)
         """
         loop = asyncio.get_event_loop()
-        posts = list(map(lambda url: loop.run_until_complete(parser.parse_article(url)), urls))
+        posts = list(map(lambda url: parser.parse_article(url), urls))
         return self.predict_by_posts(posts)
 
     def predict_by_posts(self, posts):
@@ -130,7 +130,7 @@ def model_from_hub(hub_name, threads_count=16):
         :param threads_count: count of loaded threads
     """
     text_db_path = f"{hub_name}.pickle"
-    db.save_hub_to_db(hub_name, text_db_path, start_index=1, operations=6, threads_count=threads_count)
+    parser.db.save_hub_to_db(hub_name, text_db_path, start_index=1, operations=6)
     return model_from_db(hub_name, text_db_path, start_index=3, operations=6)
 
 def make_and_save_model_from_hub(hub_name):

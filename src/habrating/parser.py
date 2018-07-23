@@ -3,24 +3,26 @@ import datetime
 import re
 import contextlib
 import os
+import pickle
 from scrapy.crawler import CrawlerProcess, Settings
 from billiard import Process
 from lxml.html import document_fromstring
 from urllib.request import urlopen
 from scrapy import signals
+from tempfile import NamedTemporaryFile
 
 from . import utils
 
 class CrawlerThread(Process):
-    def __init__(self, hub_name, bar, settings):
+    def __init__(self, spider, settings, *args):
         Process.__init__(self)
-        self.hub_name = hub_name
-        self.bar = bar
+        self.spider = spider
         self.settings = settings
+        self.args = args
 
     def run(self):
         process = CrawlerProcess(self.settings)
-        process.crawl(HabrHubSpider, self.hub_name, self.bar)
+        process.crawl(self.spider, *self.args)
         process.start()
 
 class HabrHubSpider(scrapy.Spider):
@@ -169,6 +171,13 @@ class HabrHubSpider(scrapy.Spider):
 
         yield post
 
+class HabrArticleSpider(scrapy.Spider):
+    def __init__(self, article_page):
+        self.start_urls = [article_page]
+
+    def parse(self, response):
+        tmp = HabrHubSpider("",None)
+        yield from tmp.parse_article(response)
 
 def _get_hub_last_page(hub):
     """
@@ -198,11 +207,25 @@ def save_hub_to_db(hub_name, file_path, max_year=None, operations=1, start_index
 
     bar = utils.get_bar(_hub_articles_count(hub_name)).start()
 
-    new_thread = CrawlerThread(hub_name, bar, Settings({
+    new_thread = CrawlerThread(HabrHubSpider, Settings({
         'FEED_FORMAT': 'pickle',
         'FEED_URI': f'./{file_path}',
         'LOG_LEVEL': 'ERROR',
         'RETRY_TIMES': 10
-    }))
+    }), hub_name, bar,)
     new_thread.start()
     new_thread.join()
+
+def parse_article(url):
+    tmp_file = NamedTemporaryFile()
+    new_thread = CrawlerThread(HabrArticleSpider, Settings({
+        'FEED_FORMAT': 'pickle',
+        'FEED_URI': f'{tmp_file.name}',
+        'LOG_LEVEL': 'ERROR',
+        'RETRY_TIMES': 10,
+        'ITEM_PIPELINES': {'habrating.parser.SingletonrStorePipeline': 300}
+    }), url)
+    new_thread.start()
+    new_thread.join()
+    return pickle.load(tmp_file)
+    

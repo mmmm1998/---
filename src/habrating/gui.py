@@ -111,7 +111,8 @@ class MainWindow (QMainWindow):
                 score = self.predict_url (url)
                 self.result_field.setText (f"Думаю, рейтинг будет {int (round (score))}")
                 self.statusbar.showMessage ("Готово!")
-            except:
+            except Exception as e:
+                logger.exception(e)
                 self.statusbar.showMessage ("Error while predicting! (invalid URL or connection failure)")
         else:
             try:
@@ -135,7 +136,8 @@ class MainWindow (QMainWindow):
                 score = self.predict_direct (data)
                 self.result_field.setText (f"Думаю, рейтинг будет {int (round (score))}")
                 self.statusbar.showMessage ("Готово!")
-            except ValueError:
+            except ValueError as e:
+                logger.exception(e)
                 self.statusbar.showMessage ("Некорректный ввод! Убедитесь, что вводите допустимые числа")
 
     def change_tab_size (self, new_size):

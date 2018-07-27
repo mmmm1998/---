@@ -34,7 +34,7 @@ class MainWindow (QMainWindow):
         
         self.setWindowTitle ("Habrating")
         self.resize (self.minimumSizeHint ())
-        self.statusbar.showMessage ("Готов")
+        self.statusbar.showMessage ("Ready")
         
         self.predict_button.clicked.connect (self.on_predict_clicked)
         self.tab_widget.currentChanged.connect (self.on_tab_switched)
@@ -98,19 +98,19 @@ class MainWindow (QMainWindow):
         
     def on_predict_clicked (self):
         if not self.model:
-            self.statusbar.showMessage ("Не выбрана модель!")
+            self.statusbar.showMessage ("No model selected!")
             return
         url = self.url_field.text ()
-        self.statusbar.showMessage ("Думаю, подождите...")
+        self.statusbar.showMessage ("I'm thinking, wait a minute...")
         if self.tab_widget.currentIndex () == 0:
             try:
                 logger.info (f"predicting by url {url}")
                 if not url:
-                    self.statusbar.showMessage ("Не введён адрес")
+                    self.statusbar.showMessage ("No input")
                     return
                 score = self.predict_url (url)
-                self.result_field.setText (f"Думаю, рейтинг будет {int (round (score))}")
-                self.statusbar.showMessage ("Готово!")
+                self.result_field.setText (f"You will get {int (round (score))} point(s)")
+                self.statusbar.showMessage ("Done!")
             except Exception as e:
                 logger.exception(e)
                 self.statusbar.showMessage ("Error while predicting! (invalid URL or connection failure)")
@@ -134,11 +134,11 @@ class MainWindow (QMainWindow):
                 data['year'] = self.get_int_from_field (self.year_edit)
                 logger.info (f"Input post: {data}")
                 score = self.predict_direct (data)
-                self.result_field.setText (f"Думаю, рейтинг будет {int (round (score))}")
-                self.statusbar.showMessage ("Готово!")
+                self.result_field.setText (f"You will get {int (round (score))} point(s)")
+                self.statusbar.showMessage ("Done!")
             except ValueError as e:
                 logger.exception(e)
-                self.statusbar.showMessage ("Некорректный ввод! Убедитесь, что вводите допустимые числа")
+                self.statusbar.showMessage ("Wrong input! Make sure you write numbers in additional fields")
 
     def change_tab_size (self, new_size):
         # Update widgets layout
